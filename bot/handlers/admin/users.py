@@ -23,6 +23,7 @@ from bot.callbacks import (
 from bot.dao import ProxyDAO, UserDAO
 from bot.filters import AdminFilter
 from bot.models.user import User
+from bot.services.admin_panel import admin_panel
 
 router = Router()
 router.message.filter(AdminFilter())
@@ -96,21 +97,32 @@ def _user_list_keyboard(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def _user_card_text(user: User, proxy_count: int) -> str:
+def _user_card_text(
+    user: User,
+    proxy_count: int,
+    proxy_device_limits: list[tuple[str, int | None]] | None = None,
+) -> str:
+    """proxy_device_limits: список (node_name, max_devices) для каждого прокси."""
     name = user.first_name or ""
     if user.last_name:
         name += f" {user.last_name}"
     username = f"@{user.username}" if user.username else "—"
     status = "🚫 Заблокирован" if user.is_banned else "✅ Активен"
-    return (
-        f"<b>Карточка пользователя</b>\n\n"
-        f"🆔 <b>Telegram ID:</b> <code>{user.telegram_id}</code>\n"
-        f"👤 <b>Имя:</b> <code>{name or '—'}</code>\n"
-        f"🔗 <b>Username:</b> <code>{username}</code>\n"
-        f"📅 <b>Регистрация:</b> <code>{user.created_at.strftime('%d.%m.%Y %H:%M')}</code>\n"
-        f"🔌 <b>Кол-во прокси:</b> <code>{proxy_count}</code>\n"
-        f"⚡ <b>Статус:</b> {status}"
-    )
+    lines = [
+        f"<b>Карточка пользователя</b>\n",
+        f"🆔 <b>Telegram ID:</b> <code>{user.telegram_id}</code>",
+        f"👤 <b>Имя:</b> <code>{name or '—'}</code>",
+        f"🔗 <b>Username:</b> <code>{username}</code>",
+        f"📅 <b>Регистрация:</b> <code>{user.created_at.strftime('%d.%m.%Y %H:%M')}</code>",
+        f"🔌 <b>Кол-во прокси:</b> <code>{proxy_count}</code>",
+        f"⚡ <b>Статус:</b> {status}",
+    ]
+    if proxy_device_limits:
+        lines.append("\n📱 <b>Лимит устройств по нодам:</b>")
+        for node_name, max_dev in proxy_device_limits:
+            lim = str(max_dev) if max_dev is not None else "∞"
+            lines.append(f"  • {node_name}: <code>{lim}</code>")
+    return "\n".join(lines)
 
 
 def _user_card_keyboard(user: User, back_page: int, back_query: str) -> InlineKeyboardMarkup:
@@ -264,13 +276,32 @@ async def handle_user_view(
     back_page = fsm_data.get("user_list_page", 0)
     back_query = fsm_data.get("user_list_query", "")
 
-    proxy_count = await ProxyDAO(session).count_by_user(user.id)
+    proxies = await ProxyDAO(session).get_user_proxies(user.id)
+    proxy_device_limits = await _fetch_proxy_device_limits(proxies)
+
     await call.message.edit_text(
-        _user_card_text(user, proxy_count),
+        _user_card_text(user, len(proxies), proxy_device_limits),
         parse_mode="HTML",
         reply_markup=_user_card_keyboard(user, back_page, back_query),
     )
     await call.answer()
+
+
+async def _fetch_proxy_device_limits(proxies) -> list[tuple[str, int | None]]:
+    """Получает лимит устройств для каждого прокси из /summary (кеш панели)."""
+    result = []
+    for proxy in proxies:
+        max_devices: int | None = None
+        try:
+            summary = await admin_panel.get_node_summary(proxy.node.panel_id)
+            users = summary.get("users") or []
+            entry = next((u for u in users if u["name"] == proxy.mtg_username), None)
+            if entry:
+                max_devices = entry.get("max_devices")
+        except Exception:
+            pass
+        result.append((proxy.node.name, max_devices))
+    return result
 
 
 # ── Бан / Разбан ──────────────────────────────────────────────────────────────
@@ -296,9 +327,11 @@ async def handle_user_ban(
     back_page = fsm_data.get("user_list_page", 0)
     back_query = fsm_data.get("user_list_query", "")
 
-    proxy_count = await ProxyDAO(session).count_by_user(user.id)
+    proxies = await ProxyDAO(session).get_user_proxies(user.id)
+    proxy_device_limits = await _fetch_proxy_device_limits(proxies)
+
     await call.message.edit_text(
-        _user_card_text(user, proxy_count),
+        _user_card_text(user, len(proxies), proxy_device_limits),
         parse_mode="HTML",
         reply_markup=_user_card_keyboard(user, back_page, back_query),
     )

@@ -91,16 +91,43 @@ def _proxy_list_keyboard(proxies: list[Proxy]) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def _format_proxy_caption(proxy: Proxy) -> str:
-    lines = [f"🌐 <b>{flag_emoji(proxy.node.flag)} {proxy.node.name}</b>\n"]
+async def _fetch_device_info(proxy: Proxy) -> tuple[int | None, int | None]:
+    """Возвращает (connections, max_devices) для прокси из /summary.
+
+    Данные берутся из кеша панели (обновляется каждые 10 сек) — быстро, без прямого
+    обращения к агенту. connections — текущие подключения, max_devices — лимит (None = ∞).
+    """
+    try:
+        summary = await admin_panel.get_node_summary(proxy.node.panel_id)
+        users = summary.get("users") or []
+        entry = next((u for u in users if u["name"] == proxy.mtg_username), None)
+        if entry:
+            return entry.get("connections"), entry.get("max_devices")
+    except Exception:
+        pass
+    return None, None
+
+
+def _format_proxy_caption(
+    proxy: Proxy,
+    current_devices: int | None = None,
+    max_devices: int | None = None,
+) -> str:
+    lines = [f"<b>{flag_emoji(proxy.node.flag)} {proxy.node.name}</b>\n"]
     if proxy.expires_at:
-        lines.append(f"📅 Действует до: {proxy.expires_at.strftime('%d.%m.%Y')}")
+        lines.append(f"📅 <b>Действует до:</b> {proxy.expires_at.strftime('%d.%m.%Y')}")
     else:
-        lines.append("📅 Срок действия: безлимитный")
+        lines.append("📅 <b>Срок действия:</b> безлимитный")
     if proxy.traffic_limit_gb:
-        lines.append(f"📊 Трафик: {proxy.traffic_limit_gb} ГБ")
+        lines.append(f"📊 <b>Трафик:</b> {proxy.traffic_limit_gb} ГБ")
     else:
-        lines.append("📊 Трафик: безлимитный")
+        lines.append("📊 <b>Трафик:</b> безлимитный")
+
+    if current_devices is not None or max_devices is not None:
+        cur = str(current_devices) if current_devices is not None else "?"
+        lim = str(max_devices) if max_devices is not None else "∞"
+        lines.append(f"📱 <b>Устройств:</b> {cur} / {lim}")
+
     lines.append(f"\n🔗 <code>{_tme_link(proxy)}</code>")
     return "\n".join(lines)
 
@@ -112,11 +139,17 @@ async def _delete_message(message: Message) -> None:
         pass
 
 
-async def _send_proxy_photo(message: Message, proxy: Proxy, bot_username: str) -> None:
+async def _send_proxy_photo(
+    message: Message,
+    proxy: Proxy,
+    bot_username: str,
+    current_devices: int | None = None,
+    max_devices: int | None = None,
+) -> None:
     qr_buf = build_qr_bytes(_tme_link(proxy))
     await message.answer_photo(
         photo=BufferedInputFile(qr_buf.read(), filename="qr.png"),
-        caption=_format_proxy_caption(proxy),
+        caption=_format_proxy_caption(proxy, current_devices, max_devices),
         parse_mode="HTML",
         reply_markup=_proxy_detail_keyboard(proxy, bot_username),
     )
@@ -211,9 +244,9 @@ async def handle_node_select(
     proxy.node = node
 
     caption = (
-        f"✅ Прокси создан!\n\n"
-        f"🌐 Нода: {flag_emoji(node.flag)} {node.name}\n\n"
-        f"🔗 Ссылка для подключения:\n<code>{_tme_link(proxy)}</code>"
+        f"✅ <b>Прокси создан!</b>\n\n"
+        f"🌐 <b>Нода:</b> {flag_emoji(node.flag)} {node.name}\n\n"
+        f"🔗 <b>Ссылка для подключения:</b>\n<code>{_tme_link(proxy)}</code>"
     )
     qr_buf = build_qr_bytes(_tme_link(proxy))
     await call.message.answer_photo(
@@ -263,8 +296,9 @@ async def handle_proxy_view(
         await call.answer("Прокси не найден.", show_alert=True)
         return
 
+    current_devices, max_devices = await _fetch_device_info(proxy)
     await _delete_message(call.message)
-    await _send_proxy_photo(call.message, proxy, bot_username)
+    await _send_proxy_photo(call.message, proxy, bot_username, current_devices, max_devices)
     await call.answer()
 
 

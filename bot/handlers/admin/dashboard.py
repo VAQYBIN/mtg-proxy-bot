@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from aiogram import F, Router
@@ -70,8 +71,8 @@ def _node_detail_keyboard(node: Node) -> InlineKeyboardMarkup:
 
 def _node_detail_text(
     node: Node,
-    agent_online: bool,
-    agent_metrics: dict | None,
+    summary: dict | None,
+    node_traffic: dict | None = None,
 ) -> str:
     lines = [
         f"🌐 <b>{flag_emoji(node.flag)} {node.name}</b>",
@@ -80,38 +81,59 @@ def _node_detail_text(
         "",
     ]
 
-    if not node.agent_port:
-        lines.append("ℹ️ MTG Agent не настроен для этой ноды.")
+    if summary is None:
+        lines.append("⚪ Данные панели недоступны.")
         return "\n".join(lines)
 
-    lines.append(f"⚡ <b>Агент</b>: {_status_icon(agent_online)} {'онлайн' if agent_online else 'оффлайн'}")
+    node_online: bool = summary.get("online", False)
+    lines.append(f"⚡ <b>Статус ноды</b>: {_status_icon(node_online)} {'онлайн' if node_online else 'оффлайн'}")
 
-    if agent_online and agent_metrics:
-        containers: list[dict] = agent_metrics.get("containers") or []
-        running = sum(1 for c in containers if c.get("running"))
-        online_users = sum(1 for c in containers if c.get("is_online"))
+    users: list[dict] = summary.get("users") or []
+    if users:
+        online_users = sum(1 for u in users if (u.get("connections") or 0) > 0)
+        total_connections = sum(u.get("connections") or 0 for u in users)
+        lines.append(f"👤 <b>Пользователей онлайн</b>: {online_users} / {len(users)}")
+        lines.append(f"📱 <b>Активных подключений</b>: {total_connections}")
+
+    # Трафик: предпочитаем данные из /traffic (прямой SSH), fallback — из summary
+    traffic: dict = node_traffic or summary.get("traffic") or {}
+    if traffic:
         total_rx = sum(
-            c["traffic"]["rx_bytes"] for c in containers
-            if isinstance(c.get("traffic"), dict) and isinstance(c["traffic"].get("rx_bytes"), int)
+            _parse_traffic(v.get("rx", "0"))
+            for v in traffic.values() if isinstance(v, dict)
         )
         total_tx = sum(
-            c["traffic"]["tx_bytes"] for c in containers
-            if isinstance(c.get("traffic"), dict) and isinstance(c["traffic"].get("tx_bytes"), int)
+            _parse_traffic(v.get("tx", "0"))
+            for v in traffic.values() if isinstance(v, dict)
         )
-        lines.append(f"📦 <b>Контейнеров запущено</b>: {running}")
-        lines.append(f"👤 <b>Онлайн пользователей</b>: {online_users}")
         if total_rx or total_tx:
             lines.append(f"📊 <b>Трафик</b>: ↓ {_bytes_human(total_rx)} / ↑ {_bytes_human(total_tx)}")
 
     return "\n".join(lines)
 
 
-def _bytes_human(b: int) -> str:
+def _bytes_human(b: float) -> str:
     for unit in ("Б", "КБ", "МБ", "ГБ", "ТБ"):
         if b < 1024:
             return f"{b:.1f} {unit}"
         b /= 1024
     return f"{b:.1f} ТБ"
+
+
+def _parse_traffic(value: str) -> float:
+    """Парсит строку трафика вида '1.25MB' или '512B' в байты. '—' → 0."""
+    suffixes = {"tb": 1024**4, "gb": 1024**3, "mb": 1024**2, "kb": 1024, "b": 1}
+    s = value.strip().lower()
+    for suffix, mult in suffixes.items():
+        if s.endswith(suffix):
+            try:
+                return float(s[: -len(suffix)]) * mult
+            except ValueError:
+                return 0.0
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
 
 
 # ── Хендлеры ──────────────────────────────────────────────────────────────────
@@ -125,9 +147,9 @@ async def handle_dashboard(call: CallbackQuery, session: AsyncSession) -> None:
 
     text = (
         f"🖥 <b>Дашборд</b>\n\n"
-        f"👥 Пользователей: <b>{total_users}</b>\n"
-        f"🔌 Активных прокси: <b>{total_proxies}</b>\n"
-        f"🌐 Нод: <b>{len(nodes)}</b> (✅ {active_nodes} активных)\n\n"
+        f"👥 <b>Пользователей:</b> {total_users}\n"
+        f"🔌 <b>Активных прокси:</b> {total_proxies}\n"
+        f"🌐 <b>Нод:</b> {len(nodes)} (✅ {active_nodes} активных)\n\n"
         f"Выберите ноду для подробностей:"
     )
     await call.message.edit_text(
@@ -151,18 +173,25 @@ async def handle_node_view(
         await call.answer("Нода не найдена.", show_alert=True)
         return
 
-    agent_online = False
-    agent_metrics: dict | None = None
-    if node.agent_port:
-        try:
-            agent_metrics = await admin_panel.get_agent_metrics(node.host, node.agent_port)
-            agent_online = True
-        except Exception:
-            logger.exception("Ошибка при получении метрик агента node=%s", node.name)
+    summary: dict | None = None
+    node_traffic: dict | None = None
+    results = await asyncio.gather(
+        admin_panel.get_node_summary(node.panel_id),
+        admin_panel.get_node_traffic(node.panel_id),
+        return_exceptions=True,
+    )
+    if not isinstance(results[0], Exception):
+        summary = results[0]
+    else:
+        logger.exception("Ошибка summary node=%s: %s", node.name, results[0])
+    if not isinstance(results[1], Exception):
+        node_traffic = results[1]
+    else:
+        logger.warning("Ошибка traffic node=%s: %s", node.name, results[1])
 
     try:
         await call.message.edit_text(
-            _node_detail_text(node, agent_online, agent_metrics),
+            _node_detail_text(node, summary, node_traffic),
             parse_mode="HTML",
             reply_markup=_node_detail_keyboard(node),
         )
@@ -186,17 +215,24 @@ async def handle_node_toggle(
     await dao.set_active(node, not node.is_active)
     action = "активирована" if node.is_active else "деактивирована"
 
-    agent_online = False
-    agent_metrics: dict | None = None
-    if node.agent_port:
-        try:
-            agent_metrics = await admin_panel.get_agent_metrics(node.host, node.agent_port)
-            agent_online = True
-        except Exception:
-            logger.exception("Ошибка при получении метрик агента node=%s после toggle", node.name)
+    summary: dict | None = None
+    node_traffic: dict | None = None
+    results = await asyncio.gather(
+        admin_panel.get_node_summary(node.panel_id),
+        admin_panel.get_node_traffic(node.panel_id),
+        return_exceptions=True,
+    )
+    if not isinstance(results[0], Exception):
+        summary = results[0]
+    else:
+        logger.warning("Ошибка summary node=%s после toggle: %s", node.name, results[0])
+    if not isinstance(results[1], Exception):
+        node_traffic = results[1]
+    else:
+        logger.warning("Ошибка traffic node=%s после toggle: %s", node.name, results[1])
 
     await call.message.edit_text(
-        _node_detail_text(node, agent_online, agent_metrics),
+        _node_detail_text(node, summary, node_traffic),
         parse_mode="HTML",
         reply_markup=_node_detail_keyboard(node),
     )

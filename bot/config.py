@@ -10,6 +10,7 @@ class Settings(BaseSettings):
 
     ADMIN_PANEL_URL: str
     ADMIN_PANEL_TOKEN: str
+    ADMIN_PANEL_TOTP_SECRET: str | None = None
     AGENT_TOKEN: str
 
     POSTGRES_USER: str

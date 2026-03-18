@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher
 from bot.config import settings
 from bot.database import dispose_engine
 from bot.handlers import router
-from bot.middleware import BanMiddleware, DbSessionMiddleware
+from bot.middleware import BanMiddleware, DbSessionMiddleware, ThrottlingMiddleware
 
 
 async def main() -> None:
@@ -18,6 +18,7 @@ async def main() -> None:
     dp = Dispatcher()
     dp.update.middleware(DbSessionMiddleware())
     dp.update.middleware(BanMiddleware())
+    dp.update.middleware(ThrottlingMiddleware())
     dp.include_router(router)
 
     try:

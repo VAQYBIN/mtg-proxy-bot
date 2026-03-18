@@ -214,3 +214,12 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# PIP dependencies
+node_modules/
+package-lock.json
+package.json
+
+# Claude
+.claude/
+CLAUDE.md
