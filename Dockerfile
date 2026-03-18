@@ -9,4 +9,6 @@ RUN uv pip install --system -e .
 
 COPY . .
 
-CMD ["python", "-m", "bot.main"]
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]

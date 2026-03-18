@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(.venv/Scripts/python -m alembic init alembic 2>&1)",
+      "Bash(docker exec:*)",
+      "Bash(mkdir /e/Projects/mtg-proxy-bot/bot/dao)",
+      "Bash(mkdir /e/Projects/mtg-proxy-bot/bot/middleware)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebSearch",
+      "WebFetch(domain:api.github.com)",
+      "Bash(gh api:*)"
+    ]
+  }
+}

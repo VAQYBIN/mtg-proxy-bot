@@ -20,7 +20,9 @@ dependencies = [
   "alembic>=1.14",
   "redis[asyncio]>=5.0",
   "httpx>=0.28",
+  "pyotp>=2.9",
   "pydantic-settings>=2.0",
+  "qrcode[pil]>=8.0",
 ]
 
 [tool.hatch.build.targets.wheel]

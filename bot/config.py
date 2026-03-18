@@ -6,6 +6,12 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     BOT_TOKEN: str
+    ADMIN_IDS: list[int]
+
+    ADMIN_PANEL_URL: str
+    ADMIN_PANEL_TOKEN: str
+    ADMIN_PANEL_TOTP_SECRET: str | None = None
+    AGENT_TOKEN: str
 
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
