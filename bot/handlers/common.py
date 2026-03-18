@@ -21,7 +21,10 @@ async def handle_start(message: Message, session: AsyncSession) -> None:
     user, is_new = await dao.get_or_create(message.from_user)
 
     if is_new:
-        text = f"Добро пожаловать, {user.first_name}!\n\nЯ помогу тебе настроить MTProto прокси."
+        text = (
+            f"Добро пожаловать, {user.first_name}!\n\n"
+            "Я помогу тебе настроить MTProto прокси."
+        )
     else:
         text = f"С возвращением, {user.first_name}!"
 

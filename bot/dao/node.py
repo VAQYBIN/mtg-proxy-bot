@@ -10,7 +10,7 @@ class NodeDAO:
 
     async def get_all_active(self) -> list[Node]:
         result = await self.session.execute(
-            select(Node).where(Node.is_active == True).order_by(Node.id)
+            select(Node).where(Node.is_active.is_(True)).order_by(Node.id)
         )
         return list(result.scalars().all())
 
@@ -49,7 +49,10 @@ class NodeDAO:
             node.flag = flag
             node.agent_port = agent_port
         else:
-            node = Node(panel_id=panel_id, name=name, host=host, flag=flag, agent_port=agent_port)
+            node = Node(
+                panel_id=panel_id, name=name, host=host,
+                flag=flag, agent_port=agent_port,
+            )
             self.session.add(node)
         await self.session.commit()
         await self.session.refresh(node)

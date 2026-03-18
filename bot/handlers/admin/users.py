@@ -50,7 +50,10 @@ def _user_label(user: User) -> str:
 
 def _admin_main_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👥 Пользователи", callback_data=AdminUserListCallback(page=0).pack())],
+        [InlineKeyboardButton(
+            text="👥 Пользователи",
+            callback_data=AdminUserListCallback(page=0).pack(),
+        )],
         [InlineKeyboardButton(text="🖥 Дашборд", callback_data="admin:dashboard")],
         [InlineKeyboardButton(text="📢 Рассылка", callback_data="admin:broadcast")],
     ])
@@ -74,7 +77,9 @@ def _user_list_keyboard(
             text="◀️",
             callback_data=AdminUserListCallback(page=page - 1, query=query).pack(),
         ))
-    nav.append(InlineKeyboardButton(text=f"{page + 1}/{total_pages}", callback_data="noop"))
+    nav.append(InlineKeyboardButton(
+        text=f"{page + 1}/{total_pages}", callback_data="noop"
+    ))
     if (page + 1) * PAGE_SIZE < total:
         nav.append(InlineKeyboardButton(
             text="▶️",
@@ -109,11 +114,12 @@ def _user_card_text(
     username = f"@{user.username}" if user.username else "—"
     status = "🚫 Заблокирован" if user.is_banned else "✅ Активен"
     lines = [
-        f"<b>Карточка пользователя</b>\n",
+        "<b>Карточка пользователя</b>\n",
         f"🆔 <b>Telegram ID:</b> <code>{user.telegram_id}</code>",
         f"👤 <b>Имя:</b> <code>{name or '—'}</code>",
         f"🔗 <b>Username:</b> <code>{username}</code>",
-        f"📅 <b>Регистрация:</b> <code>{user.created_at.strftime('%d.%m.%Y %H:%M')}</code>",
+        f"📅 <b>Регистрация:</b> "
+        f"<code>{user.created_at.strftime('%d.%m.%Y %H:%M')}</code>",
         f"🔌 <b>Кол-во прокси:</b> <code>{proxy_count}</code>",
         f"⚡ <b>Статус:</b> {status}",
     ]
@@ -125,16 +131,32 @@ def _user_card_text(
     return "\n".join(lines)
 
 
-def _user_card_keyboard(user: User, back_page: int, back_query: str) -> InlineKeyboardMarkup:
+def _user_card_keyboard(
+    user: User, back_page: int, back_query: str
+) -> InlineKeyboardMarkup:
     ban_text = "✅ Разблокировать" if user.is_banned else "🚫 Заблокировать"
     return InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text=ban_text, callback_data=AdminUserBanCallback(user_id=user.id).pack())],
-        [InlineKeyboardButton(text="✉️ Написать сообщение", callback_data=f"admin:msg:{user.id}")],
-        [InlineKeyboardButton(text="👤 Открыть профиль", url=f"tg://user?id={user.telegram_id}")],
-        [InlineKeyboardButton(text="🗑 Удалить пользователя", callback_data=AdminUserDeleteCallback(user_id=user.id).pack())],
+        [InlineKeyboardButton(
+            text=ban_text,
+            callback_data=AdminUserBanCallback(user_id=user.id).pack(),
+        )],
+        [InlineKeyboardButton(
+            text="✉️ Написать сообщение",
+            callback_data=f"admin:msg:{user.id}",
+        )],
+        [InlineKeyboardButton(
+            text="👤 Открыть профиль",
+            url=f"tg://user?id={user.telegram_id}",
+        )],
+        [InlineKeyboardButton(
+            text="🗑 Удалить пользователя",
+            callback_data=AdminUserDeleteCallback(user_id=user.id).pack(),
+        )],
         [InlineKeyboardButton(
             text="◀️ Назад",
-            callback_data=AdminUserListCallback(page=back_page, query=back_query).pack(),
+            callback_data=AdminUserListCallback(
+                page=back_page, query=back_query
+            ).pack(),
         )],
     ])
 
@@ -157,13 +179,17 @@ def _delete_confirm_keyboard(user_id: int) -> InlineKeyboardMarkup:
 @router.message(Command("admin"))
 async def handle_admin(message: Message, state: FSMContext) -> None:
     await state.clear()
-    await message.answer("⚙️ Панель администратора", reply_markup=_admin_main_keyboard())
+    await message.answer(
+        "⚙️ Панель администратора", reply_markup=_admin_main_keyboard()
+    )
 
 
 @router.callback_query(F.data == "admin:main")
 async def handle_admin_main(call: CallbackQuery, state: FSMContext) -> None:
     await state.clear()
-    await call.message.edit_text("⚙️ Панель администратора", reply_markup=_admin_main_keyboard())
+    await call.message.edit_text(
+        "⚙️ Панель администратора", reply_markup=_admin_main_keyboard()
+    )
     await call.answer()
 
 
@@ -197,8 +223,13 @@ async def handle_user_list(
         total = await dao.count_all()
         header = f"👥 Пользователи: {total}"
 
-    text = f"{header}\n\nВыберите пользователя:" if users else f"{header}\n\nНичего не найдено."
-    await call.message.edit_text(text, reply_markup=_user_list_keyboard(users, page, total, query))
+    text = (
+        f"{header}\n\nВыберите пользователя:"
+        if users else f"{header}\n\nНичего не найдено."
+    )
+    await call.message.edit_text(
+        text, reply_markup=_user_list_keyboard(users, page, total, query)
+    )
     await call.answer()
 
 
@@ -211,7 +242,10 @@ async def handle_search_start(call: CallbackQuery, state: FSMContext) -> None:
     await call.message.edit_text(
         "🔍 Введите username (с @ или без) или Telegram ID:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="◀️ Отмена", callback_data=AdminUserListCallback(page=0).pack())]
+            [InlineKeyboardButton(
+                text="◀️ Отмена",
+                callback_data=AdminUserListCallback(page=0).pack(),
+            )]
         ]),
     )
     await call.answer()
@@ -234,7 +268,10 @@ async def handle_search_query(
     users = await dao.search(query, offset=0, limit=PAGE_SIZE)
     total = await dao.count_search(query)
     header = f"🔍 «{query}»: найдено {total}"
-    text = f"{header}\n\nВыберите пользователя:" if users else f"{header}\n\nНичего не найдено."
+    text = (
+        f"{header}\n\nВыберите пользователя:"
+        if users else f"{header}\n\nНичего не найдено."
+    )
     keyboard = _user_list_keyboard(users, 0, total, query)
 
     try:
@@ -340,7 +377,9 @@ async def handle_user_ban(
 
 # ── Написать сообщение ────────────────────────────────────────────────────────
 
-@router.callback_query(F.data.startswith("admin:msg:") & F.data.regexp(r"^admin:msg:\d+$"))
+@router.callback_query(
+    F.data.startswith("admin:msg:") & F.data.regexp(r"^admin:msg:\d+$")
+)
 async def handle_send_message_start(
     call: CallbackQuery,
     session: AsyncSession,
@@ -392,7 +431,8 @@ async def handle_send_message_text(
         pass
 
     preview_text = (
-        f"📋 <b>Предпросмотр</b> — так увидит {_user_label(user) if user else 'пользователь'}:\n"
+        f"📋 <b>Предпросмотр</b> — так увидит "
+        f"{_user_label(user) if user else 'пользователь'}:\n"
         f"{'─' * 20}\n"
         f"{text}"
     )
@@ -417,7 +457,10 @@ async def handle_send_message_text(
     await message.answer(preview_text, parse_mode="HTML", reply_markup=confirm_keyboard)
 
 
-@router.callback_query(F.data == "admin:msg:confirm", StateFilter(AdminStates.send_message_preview))
+@router.callback_query(
+    F.data == "admin:msg:confirm",
+    StateFilter(AdminStates.send_message_preview),
+)
 async def handle_send_message_confirm(
     call: CallbackQuery,
     state: FSMContext,
@@ -450,7 +493,10 @@ async def handle_send_message_confirm(
     await call.answer()
 
 
-@router.callback_query(F.data == "admin:msg:cancel", StateFilter(AdminStates.send_message_preview))
+@router.callback_query(
+    F.data == "admin:msg:cancel",
+    StateFilter(AdminStates.send_message_preview),
+)
 async def handle_send_message_cancel(
     call: CallbackQuery,
     state: FSMContext,
@@ -487,7 +533,8 @@ async def handle_user_delete(
 
     await state.set_state(None)
     await call.message.edit_text(
-        f"⚠️ Вы уверены, что хотите удалить {_user_label(user)}?\n\nЭто действие необратимо.",
+        f"⚠️ Вы уверены, что хотите удалить {_user_label(user)}?"
+        "\n\nЭто действие необратимо.",
         reply_markup=_delete_confirm_keyboard(user.id),
     )
     await call.answer()
@@ -519,7 +566,9 @@ async def handle_user_delete_confirm(
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(
                 text="◀️ К списку",
-                callback_data=AdminUserListCallback(page=back_page, query=back_query).pack(),
+                callback_data=AdminUserListCallback(
+                    page=back_page, query=back_query
+                ).pack(),
             )]
         ]),
     )

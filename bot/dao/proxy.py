@@ -14,7 +14,7 @@ class ProxyDAO:
     async def get_user_proxies(self, user_id: int) -> list[Proxy]:
         result = await self.session.execute(
             select(Proxy)
-            .where(Proxy.user_id == user_id, Proxy.is_active == True)
+            .where(Proxy.user_id == user_id, Proxy.is_active.is_(True))
             .options(joinedload(Proxy.node))
             .order_by(Proxy.created_at)
         )
@@ -33,7 +33,7 @@ class ProxyDAO:
             select(Proxy).where(
                 Proxy.user_id == user_id,
                 Proxy.node_id == node_id,
-                Proxy.is_active == True,
+                Proxy.is_active.is_(True),
             )
         )
         return result.scalar_one_or_none()
@@ -68,7 +68,7 @@ class ProxyDAO:
         from sqlalchemy import func
         result = await self.session.execute(
             select(func.count()).select_from(Proxy).where(
-                Proxy.user_id == user_id, Proxy.is_active == True
+                Proxy.user_id == user_id, Proxy.is_active.is_(True)
             )
         )
         return result.scalar_one()
@@ -76,7 +76,7 @@ class ProxyDAO:
     async def count_active(self) -> int:
         from sqlalchemy import func
         result = await self.session.execute(
-            select(func.count()).select_from(Proxy).where(Proxy.is_active == True)
+            select(func.count()).select_from(Proxy).where(Proxy.is_active.is_(True))
         )
         return result.scalar_one()
 

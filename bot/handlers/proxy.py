@@ -37,13 +37,17 @@ def _tme_link(proxy: Proxy) -> str:
 
 def _share_url(proxy: Proxy, bot_username: str) -> str:
     text = f"Бесплатный MTProto прокси от @{bot_username} 👆"
-    return "https://t.me/share/url?" + urlencode({"url": _tme_link(proxy), "text": text})
+    return "https://t.me/share/url?" + urlencode(
+        {"url": _tme_link(proxy), "text": text}
+    )
 
 
 def _proxy_detail_keyboard(proxy: Proxy, bot_username: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔌 Подключиться", url=proxy.link)],
-        [InlineKeyboardButton(text="📤 Поделиться", url=_share_url(proxy, bot_username))],
+        [InlineKeyboardButton(
+            text="📤 Поделиться", url=_share_url(proxy, bot_username)
+        )],
         [InlineKeyboardButton(
             text="🗑 Удалить прокси",
             callback_data=ProxyDeleteCallback(proxy_id=proxy.id).pack(),
@@ -94,8 +98,9 @@ def _proxy_list_keyboard(proxies: list[Proxy]) -> InlineKeyboardMarkup:
 async def _fetch_device_info(proxy: Proxy) -> tuple[int | None, int | None]:
     """Возвращает (connections, max_devices) для прокси из /summary.
 
-    Данные берутся из кеша панели (обновляется каждые 10 сек) — быстро, без прямого
-    обращения к агенту. connections — текущие подключения, max_devices — лимит (None = ∞).
+    Данные берутся из кеша панели (обновляется каждые 10 сек) — быстро, без
+    прямого обращения к агенту. connections — текущие подключения,
+    max_devices — лимит (None = ∞).
     """
     try:
         summary = await admin_panel.get_node_summary(proxy.node.panel_id)
@@ -255,7 +260,9 @@ async def handle_node_select(
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔌 Подключиться", url=proxy.link)],
-            [InlineKeyboardButton(text="📤 Поделиться", url=_share_url(proxy, bot_username))],
+            [InlineKeyboardButton(
+                text="📤 Поделиться", url=_share_url(proxy, bot_username),
+            )],
             [InlineKeyboardButton(text="◀️ В главное меню", callback_data="menu:main")],
         ]),
     )
@@ -271,9 +278,12 @@ async def handle_proxy_list(call: CallbackQuery, session: AsyncSession) -> None:
 
     text = "У вас пока нет прокси.\n\nНажмите «Получить прокси» чтобы создать." \
         if not proxies else "Ваши прокси — выберите для просмотра:"
-    keyboard = _proxy_list_keyboard(proxies) if proxies else InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")]
-    ])
+    keyboard = (
+        _proxy_list_keyboard(proxies) if proxies
+        else InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="◀️ Назад", callback_data="menu:main")]
+        ])
+    )
 
     if call.message.photo:
         await _delete_message(call.message)
@@ -298,7 +308,9 @@ async def handle_proxy_view(
 
     current_devices, max_devices = await _fetch_device_info(proxy)
     await _delete_message(call.message)
-    await _send_proxy_photo(call.message, proxy, bot_username, current_devices, max_devices)
+    await _send_proxy_photo(
+        call.message, proxy, bot_username, current_devices, max_devices
+    )
     await call.answer()
 
 
@@ -319,9 +331,13 @@ async def handle_proxy_delete(
     )
     if call.message.photo:
         await _delete_message(call.message)
-        await call.message.answer(text, reply_markup=_proxy_delete_confirm_keyboard(proxy.id))
+        await call.message.answer(
+            text, reply_markup=_proxy_delete_confirm_keyboard(proxy.id)
+        )
     else:
-        await call.message.edit_text(text, reply_markup=_proxy_delete_confirm_keyboard(proxy.id))
+        await call.message.edit_text(
+            text, reply_markup=_proxy_delete_confirm_keyboard(proxy.id)
+        )
     await call.answer()
 
 

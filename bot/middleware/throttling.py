@@ -33,7 +33,9 @@ class ThrottlingMiddleware(BaseMiddleware):
         if allowed is None:
             update: Update = event
             if update.message:
-                await update.message.answer("⏳ Слишком много запросов. Подождите немного.")
+                await update.message.answer(
+                    "⏳ Слишком много запросов. Подождите немного."
+                )
             elif update.callback_query:
                 await update.callback_query.answer(
                     "⏳ Слишком много запросов.",

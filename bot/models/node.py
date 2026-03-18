@@ -21,7 +21,7 @@ class Node(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
-    proxies: Mapped[list["Proxy"]] = relationship(back_populates="node")
+    proxies: Mapped[list["Proxy"]] = relationship(back_populates="node")  # noqa: F821
 
     def __repr__(self) -> str:
         return f"<Node id={self.id} panel_id={self.panel_id} name={self.name}>"

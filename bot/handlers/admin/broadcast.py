@@ -156,7 +156,8 @@ async def handle_broadcast_text(message: Message, state: FSMContext) -> None:
             [InlineKeyboardButton(text="◀️ Отмена", callback_data="admin:main")],
         ])
         await _send_preview(
-            f"❌ <b>Ошибка HTML-разметки:</b>\n<code>{e.message}</code>\n\nИсправьте текст и отправьте снова:",
+            f"❌ <b>Ошибка HTML-разметки:</b>\n<code>{e.message}</code>"
+            "\n\nИсправьте текст и отправьте снова:",
             error_keyboard,
         )
         return

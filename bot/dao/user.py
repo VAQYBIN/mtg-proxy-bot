@@ -1,5 +1,5 @@
 from aiogram.types import User as TelegramUser
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.models.user import User
@@ -62,7 +62,8 @@ class UserDAO:
             condition = func.lower(User.username).like(like)
 
         result = await self.session.execute(
-            select(User).where(condition).order_by(User.created_at.desc()).offset(offset).limit(limit)
+            select(User).where(condition)
+            .order_by(User.created_at.desc()).offset(offset).limit(limit)
         )
         return list(result.scalars().all())
 
@@ -86,7 +87,7 @@ class UserDAO:
 
     async def get_all_ids(self) -> list[int]:
         result = await self.session.execute(
-            select(User.telegram_id).where(User.is_banned == False)
+            select(User.telegram_id).where(User.is_banned.is_(False))
         )
         return list(result.scalars().all())
 

@@ -10,19 +10,18 @@ from aiogram.types import (
 )
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = logging.getLogger(__name__)
-
 from bot.callbacks import (
     AdminNodeSyncCallback,
     AdminNodeToggleCallback,
     AdminNodeViewCallback,
-    AdminUserListCallback,
 )
 from bot.dao import NodeDAO, ProxyDAO, UserDAO
 from bot.filters import AdminFilter
 from bot.models.node import Node
 from bot.services.admin_panel import admin_panel
 from bot.utils.flags import flag_emoji
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 router.callback_query.filter(AdminFilter())
@@ -77,7 +76,8 @@ def _node_detail_text(
     lines = [
         f"🌐 <b>{flag_emoji(node.flag)} {node.name}</b>",
         f"🖥 <b>Хост</b>: <code>{node.host}</code>",
-        f"📌 <b>Статус в боте</b>: {'✅ Активна' if node.is_active else '❌ Деактивирована'}",
+        f"📌 <b>Статус в боте</b>: "
+        f"{'✅ Активна' if node.is_active else '❌ Деактивирована'}",
         "",
     ]
 
@@ -86,7 +86,10 @@ def _node_detail_text(
         return "\n".join(lines)
 
     node_online: bool = summary.get("online", False)
-    lines.append(f"⚡ <b>Статус ноды</b>: {_status_icon(node_online)} {'онлайн' if node_online else 'оффлайн'}")
+    status_str = 'онлайн' if node_online else 'оффлайн'
+    lines.append(
+        f"⚡ <b>Статус ноды</b>: {_status_icon(node_online)} {status_str}"
+    )
 
     users: list[dict] = summary.get("users") or []
     if users:
@@ -107,7 +110,10 @@ def _node_detail_text(
             for v in traffic.values() if isinstance(v, dict)
         )
         if total_rx or total_tx:
-            lines.append(f"📊 <b>Трафик</b>: ↓ {_bytes_human(total_rx)} / ↑ {_bytes_human(total_tx)}")
+            lines.append(
+                f"📊 <b>Трафик</b>: ↓ {_bytes_human(total_rx)}"
+                f" / ↑ {_bytes_human(total_tx)}"
+            )
 
     return "\n".join(lines)
 
@@ -249,12 +255,16 @@ async def handle_node_sync(
     try:
         remote_nodes = await admin_panel.get_nodes()
     except Exception:
-        await call.answer("❌ Не удалось получить список нод с панели.", show_alert=True)
+        await call.answer(
+            "❌ Не удалось получить список нод с панели.", show_alert=True
+        )
         return
 
     dao = NodeDAO(session)
     for n in remote_nodes:
-        await dao.upsert(n["id"], n["name"], n["host"], n.get("flag"), n.get("agent_port"))
+        await dao.upsert(
+            n["id"], n["name"], n["host"], n.get("flag"), n.get("agent_port")
+        )
 
     nodes = await dao.get_all()
     total_users = await UserDAO(session).count_all()

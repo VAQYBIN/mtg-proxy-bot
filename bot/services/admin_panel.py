@@ -66,7 +66,9 @@ class AdminPanelClient:
         return r.json()
 
     async def get_node_users(self, node_id: int) -> list[dict]:
-        r = await self._panel_request("GET", f"{self._base_url}/api/nodes/{node_id}/users")
+        r = await self._panel_request(
+            "GET", f"{self._base_url}/api/nodes/{node_id}/users"
+        )
         r.raise_for_status()
         return r.json()
 
@@ -116,7 +118,8 @@ class AdminPanelClient:
         return True
 
     async def get_status(self) -> list[dict]:
-        """GET /api/status — все ноды: {id, name, host, online, containers, online_users}."""
+        """GET /api/status — все ноды: {id, name, host, online, containers,
+        online_users}."""
         r = await self._panel_request("GET", f"{self._base_url}/api/status")
         r.raise_for_status()
         return r.json()
@@ -127,7 +130,9 @@ class AdminPanelClient:
         Возвращает {name: {rx, tx}} где rx/tx — отформатированные строки ("1.25MB"),
         не байты.
         """
-        r = await self._panel_request("GET", f"{self._base_url}/api/nodes/{node_id}/traffic")
+        r = await self._panel_request(
+            "GET", f"{self._base_url}/api/nodes/{node_id}/traffic"
+        )
         r.raise_for_status()
         return r.json()
 
@@ -150,32 +155,45 @@ class AdminPanelClient:
         return r.json()
 
     async def get_node_counts(self) -> dict:
-        """GET /api/nodes/counts — количество пользователей по нодам: {str(node_id): count}."""
+        """GET /api/nodes/counts — количество пользователей по нодам:
+        {str(node_id): count}."""
         r = await self._panel_request("GET", f"{self._base_url}/api/nodes/counts")
         r.raise_for_status()
         return r.json()
 
     async def get_node_summary(self, node_id: int) -> dict:
-        """GET /api/nodes/:id/summary — сводка по ноде: {online, users[], traffic: {name: {rx, tx}}}."""
-        r = await self._panel_request("GET", f"{self._base_url}/api/nodes/{node_id}/summary")
+        """GET /api/nodes/:id/summary — сводка по ноде:
+        {online, users[], traffic: {name: {rx, tx}}}."""
+        r = await self._panel_request(
+            "GET", f"{self._base_url}/api/nodes/{node_id}/summary"
+        )
         r.raise_for_status()
         return r.json()
 
     async def check_node(self, node_id: int) -> dict:
-        """GET /api/nodes/:id/check — SSH-проверка доступности ноды: {online, error?}."""
-        r = await self._panel_request("GET", f"{self._base_url}/api/nodes/{node_id}/check")
+        """GET /api/nodes/:id/check — SSH-проверка доступности ноды:
+        {online, error?}."""
+        r = await self._panel_request(
+            "GET", f"{self._base_url}/api/nodes/{node_id}/check"
+        )
         r.raise_for_status()
         return r.json()
 
     async def check_node_agent(self, node_id: int) -> dict:
-        """GET /api/nodes/:id/check-agent — проверка агента через панель: {available, reason?}."""
-        r = await self._panel_request("GET", f"{self._base_url}/api/nodes/{node_id}/check-agent")
+        """GET /api/nodes/:id/check-agent — проверка агента через панель:
+        {available, reason?}."""
+        r = await self._panel_request(
+            "GET", f"{self._base_url}/api/nodes/{node_id}/check-agent"
+        )
         r.raise_for_status()
         return r.json()
 
     async def get_agent_version(self, node_id: int) -> dict:
-        """GET /api/nodes/:id/agent-version — версия агента: {version, available, online}."""
-        r = await self._panel_request("GET", f"{self._base_url}/api/nodes/{node_id}/agent-version")
+        """GET /api/nodes/:id/agent-version — версия агента:
+        {version, available, online}."""
+        r = await self._panel_request(
+            "GET", f"{self._base_url}/api/nodes/{node_id}/agent-version"
+        )
         r.raise_for_status()
         return r.json()
 

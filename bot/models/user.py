@@ -25,7 +25,10 @@ class User(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
-    proxies: Mapped[list["Proxy"]] = relationship(back_populates="user")
+    proxies: Mapped[list["Proxy"]] = relationship(back_populates="user")  # noqa: F821
 
     def __repr__(self) -> str:
-        return f"<User id={self.id} telegram_id={self.telegram_id} username={self.username}>"
+        return (
+            f"<User id={self.id} telegram_id={self.telegram_id}"
+            f" username={self.username}>"
+        )
