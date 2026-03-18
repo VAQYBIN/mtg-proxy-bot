@@ -7,8 +7,10 @@ services:
     hostname: mtg-proxy-bot
     env_file: .env
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - .:/app
     restart: unless-stopped
@@ -20,9 +22,16 @@ services:
     container_name: mtg-proxy-postgres
     hostname: mtg-proxy-postgres
     env_file: .env
+    ports:
+      - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - mtg-proxy-network
 
