@@ -149,10 +149,11 @@ jobs:
         id: changelog
         run: |
           PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          FORMAT="- %s by [@%an](https://github.com/%an) ([%h](https://github.com/${{ github.repository }}/commit/%H))"
           if [ -z "$PREV_TAG" ]; then
-            COMMITS=$(git log --pretty="- %s ([%h](https://github.com/${{ github.repository }}/commit/%H))" HEAD)
+            COMMITS=$(git log --pretty="$FORMAT" HEAD)
           else
-            COMMITS=$(git log --pretty="- %s ([%h](https://github.com/${{ github.repository }}/commit/%H))" "${PREV_TAG}..HEAD")
+            COMMITS=$(git log --pretty="$FORMAT" "${PREV_TAG}..HEAD")
           fi
           echo "notes<<EOF" >> "$GITHUB_OUTPUT"
           echo "## What's Changed" >> "$GITHUB_OUTPUT"
