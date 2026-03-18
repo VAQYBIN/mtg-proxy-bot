@@ -1,0 +1,38 @@
+services:
+  bot:
+    image: ghcr.io/vaqybin/mtg-proxy-bot:latest
+    container_name: mtg-proxy-bot
+    hostname: mtg-proxy-bot
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+    networks:
+      - mtg-proxy-network
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: mtg-proxy-postgres
+    hostname: mtg-proxy-postgres
+    env_file: .env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    networks:
+      - mtg-proxy-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: mtg-proxy-redis
+    hostname: mtg-proxy-redis
+    restart: always
+    networks:
+      - mtg-proxy-network
+
+volumes:
+  postgres_data:
+
+networks:
+  mtg-proxy-network:
+    name: mtg-proxy-network
