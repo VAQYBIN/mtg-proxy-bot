@@ -101,7 +101,7 @@ def _format_proxy_caption(proxy: Proxy) -> str:
         lines.append(f"📊 Трафик: {proxy.traffic_limit_gb} ГБ")
     else:
         lines.append("📊 Трафик: безлимитный")
-    lines.append(f"\n🔗 <a>{_tme_link(proxy)}</a>")
+    lines.append(f"\n🔗 <code>{_tme_link(proxy)}</code>")
     return "\n".join(lines)
 
 

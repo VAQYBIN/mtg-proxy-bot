@@ -64,6 +64,22 @@ class ProxyDAO:
         await self.session.refresh(proxy)
         return proxy
 
+    async def count_by_user(self, user_id: int) -> int:
+        from sqlalchemy import func
+        result = await self.session.execute(
+            select(func.count()).select_from(Proxy).where(
+                Proxy.user_id == user_id, Proxy.is_active == True
+            )
+        )
+        return result.scalar_one()
+
+    async def count_active(self) -> int:
+        from sqlalchemy import func
+        result = await self.session.execute(
+            select(func.count()).select_from(Proxy).where(Proxy.is_active == True)
+        )
+        return result.scalar_one()
+
     async def delete(self, proxy: Proxy) -> None:
         proxy.is_active = False
         await self.session.commit()

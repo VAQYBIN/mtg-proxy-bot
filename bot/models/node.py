@@ -14,6 +14,7 @@ class Node(Base):
     name: Mapped[str] = mapped_column(String(128))
     host: Mapped[str] = mapped_column(String(256))
     flag: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    agent_port: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     created_at: Mapped[datetime] = mapped_column(

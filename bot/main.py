@@ -6,7 +6,7 @@ from aiogram import Bot, Dispatcher
 from bot.config import settings
 from bot.database import dispose_engine
 from bot.handlers import router
-from bot.middleware import DbSessionMiddleware
+from bot.middleware import BanMiddleware, DbSessionMiddleware
 
 
 async def main() -> None:
@@ -17,6 +17,7 @@ async def main() -> None:
 
     dp = Dispatcher()
     dp.update.middleware(DbSessionMiddleware())
+    dp.update.middleware(BanMiddleware())
     dp.include_router(router)
 
     try:
@@ -24,6 +25,8 @@ async def main() -> None:
     finally:
         await dispose_engine()
         await bot.session.close()
+        from bot.services.admin_panel import admin_panel
+        await admin_panel.close()
 
 
 if __name__ == "__main__":
