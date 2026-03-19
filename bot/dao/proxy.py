@@ -80,6 +80,13 @@ class ProxyDAO:
         )
         return result.scalar_one()
 
+    async def update_fields(self, proxy: Proxy, **fields) -> Proxy:
+        for key, value in fields.items():
+            setattr(proxy, key, value)
+        await self.session.commit()
+        await self.session.refresh(proxy)
+        return proxy
+
     async def delete(self, proxy: Proxy) -> None:
         proxy.is_active = False
         await self.session.commit()

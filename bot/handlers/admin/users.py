@@ -14,6 +14,7 @@ from aiogram.types import (
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.callbacks import (
+    AdminProxySelectCallback,
     AdminUserBanCallback,
     AdminUserDeleteCallback,
     AdminUserDeleteConfirmCallback,
@@ -56,6 +57,10 @@ def _admin_main_keyboard() -> InlineKeyboardMarkup:
         )],
         [InlineKeyboardButton(text="🖥 Дашборд", callback_data="admin:dashboard")],
         [InlineKeyboardButton(text="📢 Рассылка", callback_data="admin:broadcast")],
+        [InlineKeyboardButton(
+            text="⚙️ Настройки прокси",
+            callback_data="admin:proxy_settings",
+        )],
     ])
 
 
@@ -132,10 +137,13 @@ def _user_card_text(
 
 
 def _user_card_keyboard(
-    user: User, back_page: int, back_query: str
+    user: User,
+    back_page: int,
+    back_query: str,
+    proxies=None,
 ) -> InlineKeyboardMarkup:
     ban_text = "✅ Разблокировать" if user.is_banned else "🚫 Заблокировать"
-    return InlineKeyboardMarkup(inline_keyboard=[
+    buttons = [
         [InlineKeyboardButton(
             text=ban_text,
             callback_data=AdminUserBanCallback(user_id=user.id).pack(),
@@ -148,17 +156,23 @@ def _user_card_keyboard(
             text="👤 Открыть профиль",
             url=f"tg://user?id={user.telegram_id}",
         )],
-        [InlineKeyboardButton(
-            text="🗑 Удалить пользователя",
-            callback_data=AdminUserDeleteCallback(user_id=user.id).pack(),
-        )],
-        [InlineKeyboardButton(
-            text="◀️ Назад",
-            callback_data=AdminUserListCallback(
-                page=back_page, query=back_query
-            ).pack(),
-        )],
-    ])
+    ]
+    if proxies:
+        buttons.append([InlineKeyboardButton(
+            text="✏️ Редактировать ограничения прокси",
+            callback_data=AdminProxySelectCallback(user_id=user.id).pack(),
+        )])
+    buttons.append([InlineKeyboardButton(
+        text="🗑 Удалить пользователя",
+        callback_data=AdminUserDeleteCallback(user_id=user.id).pack(),
+    )])
+    buttons.append([InlineKeyboardButton(
+        text="◀️ Назад",
+        callback_data=AdminUserListCallback(
+            page=back_page, query=back_query
+        ).pack(),
+    )])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
 def _delete_confirm_keyboard(user_id: int) -> InlineKeyboardMarkup:
@@ -319,7 +333,7 @@ async def handle_user_view(
     await call.message.edit_text(
         _user_card_text(user, len(proxies), proxy_device_limits),
         parse_mode="HTML",
-        reply_markup=_user_card_keyboard(user, back_page, back_query),
+        reply_markup=_user_card_keyboard(user, back_page, back_query, proxies),
     )
     await call.answer()
 
@@ -370,7 +384,7 @@ async def handle_user_ban(
     await call.message.edit_text(
         _user_card_text(user, len(proxies), proxy_device_limits),
         parse_mode="HTML",
-        reply_markup=_user_card_keyboard(user, back_page, back_query),
+        reply_markup=_user_card_keyboard(user, back_page, back_query, proxies),
     )
     await call.answer(f"✅ Пользователь {action}.")
 

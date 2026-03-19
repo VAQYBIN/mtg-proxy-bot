@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
 from aiogram import F, Router
@@ -17,7 +18,7 @@ from bot.callbacks import (
     ProxyDeleteConfirmCallback,
     ProxyViewCallback,
 )
-from bot.dao import NodeDAO, ProxyDAO, UserDAO
+from bot.dao import NodeDAO, ProxyDAO, ProxySettingsDAO, UserDAO
 from bot.models.proxy import Proxy
 from bot.services.admin_panel import admin_panel
 from bot.utils.flags import flag_emoji
@@ -226,9 +227,20 @@ async def handle_node_select(
     )
     await call.answer()
 
+    ps = await ProxySettingsDAO(session).get()
+    expires_at: datetime | None = None
+    if ps and ps.expires_days:
+        expires_at = datetime.now(tz=timezone.utc) + timedelta(days=ps.expires_days)
+    traffic_limit_gb: float | None = ps.traffic_limit_gb if ps else None
+
     mtg_username = f"tg_{call.from_user.id}"
     try:
-        data = await admin_panel.create_user(node.panel_id, mtg_username)
+        data = await admin_panel.create_user(
+            node.panel_id,
+            mtg_username,
+            expires_at=expires_at,
+            traffic_limit_gb=traffic_limit_gb,
+        )
     except Exception:
         await call.message.edit_text(
             "❌ Не удалось создать прокси. Попробуйте позже.",
@@ -245,7 +257,21 @@ async def handle_node_select(
         link=data["link"],
         port=data["port"],
         secret=data["secret"],
+        expires_at=expires_at,
+        traffic_limit_gb=traffic_limit_gb,
     )
+
+    # Применяем max_devices и traffic_reset_interval через update_user
+    if ps and (ps.max_devices is not None or ps.traffic_reset_interval is not None):
+        update_fields: dict = {}
+        if ps.max_devices is not None:
+            update_fields["max_devices"] = ps.max_devices
+        if ps.traffic_reset_interval is not None:
+            update_fields["traffic_reset_interval"] = ps.traffic_reset_interval
+        try:
+            await admin_panel.update_user(node.panel_id, mtg_username, **update_fields)
+        except Exception:
+            pass
     proxy.node = node
 
     caption = (

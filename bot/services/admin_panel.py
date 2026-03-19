@@ -93,6 +93,28 @@ class AdminPanelClient:
         r.raise_for_status()
         return r.json()
 
+    async def update_user(self, node_id: int, name: str, **fields) -> dict:
+        """PUT /api/nodes/:id/users/:name — обновляет параметры пользователя на ноде.
+
+        Допустимые поля: max_devices, expires_at, traffic_limit_gb,
+        traffic_reset_interval. None передаётся явно (null в JSON).
+        """
+        r = await self._panel_request(
+            "PUT",
+            f"{self._base_url}/api/nodes/{node_id}/users/{name}",
+            json=fields,
+        )
+        r.raise_for_status()
+        return r.json()
+
+    async def reset_user_traffic(self, node_id: int, name: str) -> None:
+        """POST /api/nodes/:id/users/:name/reset-traffic — сбрасывает трафик."""
+        r = await self._panel_request(
+            "POST",
+            f"{self._base_url}/api/nodes/{node_id}/users/{name}/reset-traffic",
+        )
+        r.raise_for_status()
+
     async def delete_user(self, node_id: int, name: str) -> bool:
         r = await self._panel_request(
             "DELETE",
