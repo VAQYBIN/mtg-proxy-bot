@@ -14,6 +14,7 @@ Telegram-бот для управления MTProto-прокси. Интегри
 - [Архитектура](#архитектура)
 - [Быстрый старт](#быстрый-старт)
 - [Конфигурация](#конфигурация)
+- [Настройка Webhook](#настройка-webhook)
 - [Структура проекта](#структура-проекта)
 - [Команды](#команды)
 
@@ -42,6 +43,7 @@ Telegram-бот для управления MTProto-прокси. Интегри
 | Слой | Технология |
 |------|-----------|
 | Bot framework | [aiogram](https://github.com/aiogram/aiogram) 3.x |
+| Web-сервер | aiohttp (webhook) |
 | ORM | SQLAlchemy 2.0 (async) + asyncpg |
 | HTTP-клиент | httpx (async) |
 | TOTP 2FA | pyotp |
@@ -51,14 +53,20 @@ Telegram-бот для управления MTProto-прокси. Интегри
 | Миграции | Alembic |
 | База данных | PostgreSQL 17 |
 | Кэш | Redis 7 |
-| Деплой | Docker Compose |
+| Деплой | Docker Compose + nginx |
 
 ---
 
 ## Архитектура
 
 ```
-Telegram Bot (aiogram)
+Telegram (HTTPS POST /mtg-webhook)
+        │
+        ▼
+     nginx (443 SSL)
+        │
+        ▼
+MTG Proxy Bot — aiohttp :8080
         │
         ▼
 MTG Admin Panel (HTTP REST API)   ←  TOTP 2FA (опционально)
@@ -69,6 +77,8 @@ MTG Agent (agent_port на каждой ноде)
         ▼
 PostgreSQL + Redis
 ```
+
+Бот работает в режиме **webhook**: Telegram сам присылает апдейты на HTTPS-эндпоинт, проксируемый через nginx. Это исключает постоянный polling-цикл и снижает задержку обработки сообщений.
 
 ### Ключевые потоки данных
 
@@ -88,9 +98,10 @@ PostgreSQL + Redis
 
 - Docker и Docker Compose (`sudo curl -fsSL https://get.docker.com | sh`)
 - Работающая [MTG Admin Panel](https://github.com/MaksimTMB/mtg-adminpanel)
+- Домен с A-записью, указывающей на сервер (нужен для webhook)
+- Nginx с SSL-сертификатом для этого домена
 
 ### Установка
-
 
 ```bash
 bash <(curl -fsSL git.new/mtg-bot-docker -o docker-compose.yml)
@@ -117,11 +128,13 @@ docker compose pull && docker compose down && docker compose up -d && docker com
 
 Отредактируйте `.env` и заполните значения:
 
+### Основные параметры
+
 | Переменная | Обязательная | Описание |
 |---|---|---|
 | `BOT_TOKEN` | ✅ | Токен бота от [@BotFather](https://t.me/BotFather) |
 | `ADMIN_IDS` | ✅ | Список Telegram ID администраторов, например `[123456789, 987654321]` |
-| `ADMIN_PANEL_URL` | ✅ | URL MTG Admin Panel, например `http://panel-host:3000` или `https://host.panel.com`|
+| `ADMIN_PANEL_URL` | ✅ | URL MTG Admin Panel, например `http://panel-host:3000` или `https://host.panel.com` |
 | `ADMIN_PANEL_TOKEN` | ✅ | Токен доступа к Admin Panel (из .env панели) |
 | `AGENT_TOKEN` | ✅ | Секрет MTG-агента (из .env панели) |
 | `ADMIN_PANEL_TOTP_SECRET` | ❌ | TOTP-секрет для 2FA панели (если включена) |
@@ -133,6 +146,18 @@ docker compose pull && docker compose down && docker compose up -d && docker com
 | `REDIS_HOST` | ✅ | Хост Redis (в Docker Compose — `redis`) |
 | `REDIS_PORT` | ✅ | Порт Redis (обычно `6379`) |
 | `REDIS_DB` | ✅ | Номер базы данных Redis (обычно `0`) |
+
+### Webhook
+
+| Переменная | Обязательная | Описание |
+|---|---|---|
+| `WEBHOOK_BASE_URL` | ✅ | Публичный HTTPS-URL домена, например `https://webhook.domain.com` |
+| `WEBHOOK_PATH` | ✅ | Путь эндпоинта (по умолчанию `/mtg-webhook`) |
+| `WEBHOOK_SECRET` | ✅ | Случайная строка для верификации запросов от Telegram (`openssl rand -hex 16`) |
+| `WEB_SERVER_HOST` | ❌ | Хост aiohttp-сервера (по умолчанию `0.0.0.0`) |
+| `WEB_SERVER_PORT` | ❌ | Порт aiohttp-сервера (по умолчанию `8080`) |
+
+### Пример `.env`
 
 ```dotenv
 # Telegram Bot
@@ -156,6 +181,97 @@ POSTGRES_PORT=5432
 REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_DB=0
+
+# Webhook
+WEBHOOK_BASE_URL=https://webhook.domain.com
+WEBHOOK_PATH=/mtg-webhook
+WEBHOOK_SECRET=replace-with-random-secret
+WEB_SERVER_HOST=0.0.0.0
+WEB_SERVER_PORT=8080
+```
+
+---
+
+## Настройка Webhook
+
+### 1. DNS — A-запись
+
+Создайте A-запись, указывающую на IP вашего сервера:
+
+```
+webhook.domain.com.  A  <IP-адрес сервера>
+```
+
+Telegram требует, чтобы webhook-эндпоинт был доступен по HTTPS на 443, 80, 88 или 8443 порту. Nginx терминирует TLS и проксирует запросы на внутренний порт `8080` контейнера.
+
+### 2. Конфигурация nginx
+
+```nginx
+upstream mtg-proxy-bot {
+    server mtg-proxy-bot:8080;
+}
+
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    "" close;
+}
+
+server {
+    server_name webhook.domain.com;
+    listen 443 ssl;
+    http2 on;
+
+    ssl_certificate     /etc/nginx/ssl/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/privkey.key;
+    ssl_trusted_certificate /etc/nginx/ssl/fullchain.pem;
+
+    proxy_http_version 1.1;
+    proxy_set_header Host              $host;
+    proxy_set_header Upgrade           $http_upgrade;
+    proxy_set_header Connection        $connection_upgrade;
+    proxy_set_header X-Real-IP         $remote_addr;
+    proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Forwarded-Host  $host;
+    proxy_set_header X-Forwarded-Port  $server_port;
+    proxy_send_timeout 60s;
+    proxy_read_timeout 60s;
+    proxy_intercept_errors on;
+    error_page 400 404 500 502 @redirect;
+
+    location /mtg-webhook {
+        proxy_pass http://mtg-proxy-bot$request_uri;
+    }
+
+    location @redirect {
+        return 404;
+    }
+}
+```
+
+> Если nginx запущен вне Docker-сети бота, замените `server mtg-proxy-bot:8080` на `server 127.0.0.1:8080` и убедитесь, что в `docker-compose.yml` есть `ports: ["127.0.0.1:8080:8080"]`.
+
+### 3. Проверка
+
+После запуска бота и применения конфига nginx:
+
+```bash
+# Убедиться, что бот слушает порт
+docker compose logs bot | grep "Running on"
+
+# Проверить регистрацию webhook в Telegram
+curl https://api.telegram.org/bot<BOT_TOKEN>/getWebhookInfo
+```
+
+Ожидаемый ответ:
+
+```json
+{
+  "url": "https://webhook.domain.com/mtg-webhook",
+  "has_custom_certificate": false,
+  "pending_update_count": 0,
+  "secret_token_set": true
+}
 ```
 
 ---
@@ -167,6 +283,7 @@ mtg-proxy-bot/
 ├── bot/
 │   ├── main.py                  # Точка входа, регистрация роутеров и middleware
 │   ├── config.py                # Настройки (pydantic-settings)
+│   ├── web_server.py            # aiohttp webhook-сервер
 │   ├── database.py              # SQLAlchemy engine
 │   ├── callbacks.py             # CallbackData-классы aiogram
 │   ├── filters.py               # AdminFilter
