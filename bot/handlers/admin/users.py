@@ -65,7 +65,7 @@ def _admin_main_keyboard() -> InlineKeyboardMarkup:
 
 
 def _user_list_keyboard(
-    users: list[User], page: int, total: int, query: str = ""
+    users: list[User], page: int, total: int
 ) -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(
@@ -80,7 +80,7 @@ def _user_list_keyboard(
     if page > 0:
         nav.append(InlineKeyboardButton(
             text="◀️",
-            callback_data=AdminUserListCallback(page=page - 1, query=query).pack(),
+            callback_data=AdminUserListCallback(page=page - 1).pack(),
         ))
     nav.append(InlineKeyboardButton(
         text=f"{page + 1}/{total_pages}", callback_data="noop"
@@ -88,20 +88,14 @@ def _user_list_keyboard(
     if (page + 1) * PAGE_SIZE < total:
         nav.append(InlineKeyboardButton(
             text="▶️",
-            callback_data=AdminUserListCallback(page=page + 1, query=query).pack(),
+            callback_data=AdminUserListCallback(page=page + 1).pack(),
         ))
     buttons.append(nav)
 
-    if query:
-        buttons.append([InlineKeyboardButton(
-            text="✖️ Сбросить поиск",
-            callback_data=AdminUserListCallback(page=0).pack(),
-        )])
-    else:
-        buttons.append([InlineKeyboardButton(
-            text="🔍 Поиск",
-            callback_data="admin:users:search",
-        )])
+    buttons.append([InlineKeyboardButton(
+        text="🔍 Поиск",
+        callback_data="admin:users:search",
+    )])
 
     buttons.append([InlineKeyboardButton(text="◀️ Назад", callback_data="admin:main")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
@@ -222,27 +216,21 @@ async def handle_user_list(
     state: FSMContext,
 ) -> None:
     page = callback_data.page
-    query = callback_data.query
 
     await state.set_state(None)
-    await state.update_data(user_list_page=page, user_list_query=query)
+    await state.update_data(user_list_page=page, user_list_query="")
 
     dao = UserDAO(session)
-    if query:
-        users = await dao.search(query, offset=page * PAGE_SIZE, limit=PAGE_SIZE)
-        total = await dao.count_search(query)
-        header = f"🔍 «{query}»: найдено {total}"
-    else:
-        users = await dao.get_all(offset=page * PAGE_SIZE, limit=PAGE_SIZE)
-        total = await dao.count_all()
-        header = f"👥 Пользователи: {total}"
+    users = await dao.get_all(offset=page * PAGE_SIZE, limit=PAGE_SIZE)
+    total = await dao.count_all()
+    header = f"👥 Пользователи: {total}"
 
     text = (
         f"{header}\n\nВыберите пользователя:"
         if users else f"{header}\n\nНичего не найдено."
     )
     await call.message.edit_text(
-        text, reply_markup=_user_list_keyboard(users, page, total, query)
+        text, reply_markup=_user_list_keyboard(users, page, total)
     )
     await call.answer()
 
@@ -276,36 +264,52 @@ async def handle_search_query(
     prompt_msg_id = fsm_data.get("search_prompt_msg_id")
 
     await state.set_state(None)
-    await state.update_data(user_list_page=0, user_list_query=query)
 
     dao = UserDAO(session)
-    users = await dao.search(query, offset=0, limit=PAGE_SIZE)
-    total = await dao.count_search(query)
-    header = f"🔍 «{query}»: найдено {total}"
-    text = (
-        f"{header}\n\nВыберите пользователя:"
-        if users else f"{header}\n\nНичего не найдено."
-    )
-    keyboard = _user_list_keyboard(users, 0, total, query)
+    user = await dao.search(query)
 
     try:
         await message.delete()
     except TelegramBadRequest:
         pass
 
-    if prompt_msg_id:
-        try:
-            await message.bot.edit_message_text(
-                chat_id=message.chat.id,
-                message_id=prompt_msg_id,
-                text=text,
-                reply_markup=keyboard,
-            )
-            return
-        except TelegramBadRequest:
-            pass
+    async def _edit_or_answer(text: str, keyboard, parse_mode: str | None = None):
+        if prompt_msg_id:
+            try:
+                await message.bot.edit_message_text(
+                    chat_id=message.chat.id,
+                    message_id=prompt_msg_id,
+                    text=text,
+                    parse_mode=parse_mode,
+                    reply_markup=keyboard,
+                )
+                return
+            except TelegramBadRequest:
+                pass
+        await message.answer(text, parse_mode=parse_mode, reply_markup=keyboard)
 
-    await message.answer(text, reply_markup=keyboard)
+    if user is None:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(
+                text="◀️ Назад",
+                callback_data=AdminUserListCallback(page=0).pack(),
+            )]
+        ])
+        await _edit_or_answer(
+            "❌ Пользователь не найден, проверьте корректность ввода и попробуйте ещё раз",
+            keyboard,
+        )
+        return
+
+    await state.update_data(user_list_page=0, user_list_query="")
+    proxies = await ProxyDAO(session).get_user_proxies(user.id)
+    proxy_device_limits = await _fetch_proxy_device_limits(proxies)
+    keyboard = _user_card_keyboard(user, 0, "", proxies)
+    await _edit_or_answer(
+        _user_card_text(user, len(proxies), proxy_device_limits),
+        keyboard,
+        parse_mode="HTML",
+    )
 
 
 # ── Карточка пользователя ─────────────────────────────────────────────────────

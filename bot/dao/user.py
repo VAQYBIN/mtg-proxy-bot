@@ -48,7 +48,7 @@ class UserDAO:
         result = await self.session.execute(select(func.count()).select_from(User))
         return result.scalar_one()
 
-    async def search(self, query: str, offset: int = 0, limit: int = 10) -> list[User]:
+    async def search(self, query: str) -> User | None:
         tg_id: int | None = None
         try:
             tg_id = int(query)
@@ -58,32 +58,10 @@ class UserDAO:
         if tg_id is not None:
             condition = User.telegram_id == tg_id
         else:
-            like = f"%{query.lstrip('@').lower()}%"
-            condition = func.lower(User.username).like(like)
+            condition = func.lower(User.username) == query.lstrip('@').lower()
 
-        result = await self.session.execute(
-            select(User).where(condition)
-            .order_by(User.created_at.desc()).offset(offset).limit(limit)
-        )
-        return list(result.scalars().all())
-
-    async def count_search(self, query: str) -> int:
-        tg_id: int | None = None
-        try:
-            tg_id = int(query)
-        except ValueError:
-            pass
-
-        if tg_id is not None:
-            condition = User.telegram_id == tg_id
-        else:
-            like = f"%{query.lstrip('@').lower()}%"
-            condition = func.lower(User.username).like(like)
-
-        result = await self.session.execute(
-            select(func.count()).select_from(User).where(condition)
-        )
-        return result.scalar_one()
+        result = await self.session.execute(select(User).where(condition))
+        return result.scalar_one_or_none()
 
     async def get_all_ids(self) -> list[int]:
         result = await self.session.execute(
