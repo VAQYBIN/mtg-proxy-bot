@@ -61,6 +61,7 @@ def _admin_main_keyboard() -> InlineKeyboardMarkup:
             text="⚙️ Настройки прокси",
             callback_data="admin:proxy_settings",
         )],
+        [InlineKeyboardButton(text="❓ Настроить FAQ", callback_data="admin:faq")],
     ])
 
 
@@ -296,7 +297,8 @@ async def handle_search_query(
             )]
         ])
         await _edit_or_answer(
-            "❌ Пользователь не найден, проверьте корректность ввода и попробуйте ещё раз",
+            "❌ Пользователь не найден, "
+            "проверьте корректность ввода и попробуйте ещё раз",
             keyboard,
         )
         return

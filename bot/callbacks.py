@@ -97,3 +97,44 @@ class AdminBroadcastConfirmCallback(CallbackData, prefix="adm_bc_ok"):
 
 class AdminBroadcastCancelCallback(CallbackData, prefix="adm_bc_cancel"):
     pass
+
+
+# ── Пользователь: FAQ ─────────────────────────────────────────
+
+class FAQViewCallback(CallbackData, prefix="faq_view"):
+    faq_id: int
+
+
+# ── Админ: FAQ ────────────────────────────────────────────────
+
+class AdminFAQToggleCallback(CallbackData, prefix="adm_faq_toggle"):
+    pass
+
+
+class AdminFAQAddCallback(CallbackData, prefix="adm_faq_add"):
+    pass
+
+
+class AdminFAQItemViewCallback(CallbackData, prefix="adm_faq_item"):
+    faq_id: int
+
+
+class AdminFAQMoveCallback(CallbackData, prefix="adm_faq_move"):
+    faq_id: int
+    direction: str  # "up" or "down"
+
+
+class AdminFAQEditQuestionCallback(CallbackData, prefix="adm_faq_eq"):
+    faq_id: int
+
+
+class AdminFAQEditAnswerCallback(CallbackData, prefix="adm_faq_ea"):
+    faq_id: int
+
+
+class AdminFAQDeleteCallback(CallbackData, prefix="adm_faq_del"):
+    faq_id: int
+
+
+class AdminFAQDeleteConfirmCallback(CallbackData, prefix="adm_faq_del_ok"):
+    faq_id: int

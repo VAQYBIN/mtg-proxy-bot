@@ -1,4 +1,4 @@
-from sqlalchemy import Double, Integer, String
+from sqlalchemy import Boolean, Double, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column
 
 from bot.models.base import Base
@@ -13,6 +13,9 @@ class ProxySettings(Base):
     expires_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     traffic_reset_interval: Mapped[str | None] = mapped_column(
         String(16), nullable=True
+    )
+    faq_enabled: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
     )
 
     def __repr__(self) -> str:
