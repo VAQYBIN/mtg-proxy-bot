@@ -178,6 +178,9 @@ async def handle_main_menu(call: CallbackQuery) -> None:
 @router.callback_query(F.data == "proxy:get")
 async def handle_proxy_get(call: CallbackQuery, session: AsyncSession) -> None:
     user = await UserDAO(session).get_by_telegram_id(call.from_user.id)
+    if user is None:
+        await call.answer("Сначала отправьте /start", show_alert=True)
+        return
     all_nodes = await NodeDAO(session).get_all_active()
     user_proxies = await ProxyDAO(session).get_user_proxies(user.id)
 
@@ -210,6 +213,9 @@ async def handle_node_select(
 ) -> None:
     node_id = callback_data.node_id
     user = await UserDAO(session).get_by_telegram_id(call.from_user.id)
+    if user is None:
+        await call.answer("Сначала отправьте /start", show_alert=True)
+        return
     node = await NodeDAO(session).get_by_id(node_id)
 
     if not node:
@@ -274,6 +280,9 @@ async def handle_node_select(
 @router.callback_query(F.data == "proxy:list")
 async def handle_proxy_list(call: CallbackQuery, session: AsyncSession) -> None:
     user = await UserDAO(session).get_by_telegram_id(call.from_user.id)
+    if user is None:
+        await call.answer("Сначала отправьте /start", show_alert=True)
+        return
     proxies = await ProxyDAO(session).get_user_proxies(user.id)
 
     text = "У вас пока нет прокси.\n\nНажмите «Получить прокси» чтобы создать." \
