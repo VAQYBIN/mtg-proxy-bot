@@ -56,6 +56,39 @@ class AdminNodeSyncCallback(CallbackData, prefix="adm_node_sync"):
     pass
 
 
+# ── Админ: настройки прокси ───────────────────────────────────
+
+class AdminProxySettingsFieldCallback(CallbackData, prefix="admin_ps_field"):
+    field: str
+
+
+# ── Админ: выбор прокси пользователя ─────────────────────────
+
+class AdminProxySelectCallback(CallbackData, prefix="admin_proxy_sel"):
+    user_id: int
+
+
+# ── Админ: редактирование прокси пользователя ─────────────────
+
+class AdminProxyEditCallback(CallbackData, prefix="admin_proxy_edit"):
+    proxy_id: int
+
+
+class AdminProxyEditFieldCallback(CallbackData, prefix="admin_proxy_field"):
+    proxy_id: int
+    field: str
+
+
+class AdminProxyResetTrafficCallback(CallbackData, prefix="admin_proxy_reset"):
+    proxy_id: int
+
+
+class AdminProxyResetTrafficConfirmCallback(
+    CallbackData, prefix="admin_proxy_reset_ok"
+):
+    proxy_id: int
+
+
 # ── Админ: рассылка ───────────────────────────────────────────
 
 class AdminBroadcastConfirmCallback(CallbackData, prefix="adm_bc_ok"):

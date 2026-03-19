@@ -5,7 +5,7 @@ from aiogram import Bot, Dispatcher
 from bot.config import settings
 from bot.handlers import router
 from bot.middleware import BanMiddleware, DbSessionMiddleware, ThrottlingMiddleware
-from bot.web_server import run_webhook
+from bot.web_server import run_polling, run_webhook
 
 
 def main() -> None:
@@ -18,7 +18,10 @@ def main() -> None:
     dp.update.middleware(ThrottlingMiddleware())
     dp.include_router(router)
 
-    run_webhook(bot, dp)
+    if settings.WEBHOOK_MODE_ENABLED:
+        run_webhook(bot, dp)
+    else:
+        run_polling(bot, dp)
 
 
 if __name__ == "__main__":
