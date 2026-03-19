@@ -4,9 +4,6 @@ on:
   push:
     branches: [main]
     tags: ['v*.*.*']
-  pull_request:
-    branches: [main]
-    types: [closed]
 
 env:
   REGISTRY: ghcr.io
@@ -16,7 +13,6 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
-    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
 
     steps:
       - name: Notify Telegram — Tests Started
@@ -98,7 +94,7 @@ jobs:
             type=ref,event=branch
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
@@ -119,70 +115,4 @@ jobs:
           thread_id: ${{ secrets.TELEGRAM_THREAD_ID }}
           status: ${{ job.status }}
           title: "Docker Build & Push [Production]"
-          notify_fields: "actor,repository,workflow,branch,commit"
-
-  release:
-    name: Create GitHub Release
-    runs-on: ubuntu-latest
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/v')
-    permissions:
-      contents: write
-
-    steps:
-      - name: Notify Telegram — Release Started
-        uses: proDreams/actions-telegram-notifier@main
-        with:
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
-          thread_id: ${{ secrets.TELEGRAM_THREAD_ID }}
-          status: pending
-          title: "Release ${{ github.ref_name }} [Production]"
-          notify_fields: "actor,repository,workflow,branch,commit"
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Generate release notes
-        id: changelog
-        run: |
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          FORMAT="- %s by [@%an](https://github.com/%an) ([%h](https://github.com/${{ github.repository }}/commit/%H))"
-          if [ -z "$PREV_TAG" ]; then
-            COMMITS=$(git log --pretty="$FORMAT" HEAD)
-          else
-            COMMITS=$(git log --pretty="$FORMAT" "${PREV_TAG}..HEAD")
-          fi
-          echo "notes<<EOF" >> "$GITHUB_OUTPUT"
-          echo "## What's Changed" >> "$GITHUB_OUTPUT"
-          echo "" >> "$GITHUB_OUTPUT"
-          echo "$COMMITS" >> "$GITHUB_OUTPUT"
-          if [ -n "$PREV_TAG" ]; then
-            echo "" >> "$GITHUB_OUTPUT"
-            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "" >> "$GITHUB_OUTPUT"
-            echo "**Full Changelog**: https://github.com/${{ github.repository }}/commits/${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          fi
-          echo "EOF" >> "$GITHUB_OUTPUT"
-
-      - name: Create GitHub Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release create "${{ github.ref_name }}" \
-            --title "Release ${{ github.ref_name }}" \
-            --notes "${{ steps.changelog.outputs.notes }}"
-
-      - name: Notify Telegram — Release
-        if: always()
-        uses: proDreams/actions-telegram-notifier@main
-        with:
-          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
-          thread_id: ${{ secrets.TELEGRAM_THREAD_ID }}
-          status: ${{ job.status }}
-          title: "Release ${{ github.ref_name }} [Production]"
           notify_fields: "actor,repository,workflow,branch,commit"
