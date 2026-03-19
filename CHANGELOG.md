@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.2.0](https://github.com/VAQYBIN/mtg-proxy-bot/compare/v1.1.0...v1.2.0) (2026-03-19)
+
+
+### Features
+
+* add FAQ section with admin management ([b77686b](https://github.com/VAQYBIN/mtg-proxy-bot/commit/b77686ba36ea1bd87d3fd11292d95207f964dca3))
+* FAQ section with admin management ([1ca3bcf](https://github.com/VAQYBIN/mtg-proxy-bot/commit/1ca3bcfbd8b217330fd5ac821136b3b4aa80b2c7))
+* proxy default settings, per-user proxy editing, polling mode ([05846ff](https://github.com/VAQYBIN/mtg-proxy-bot/commit/05846ff34824245565da45d0862df8286e693eab))
+
+
+### Bug Fixes
+
+* handle missing user in proxy callbacks ([c1ef654](https://github.com/VAQYBIN/mtg-proxy-bot/commit/c1ef654c1ae2a37db14236f6ca57b15be7a098f3))
+
 ## [1.1.0](https://github.com/VAQYBIN/mtg-proxy-bot/compare/v1.0.1...v1.1.0) (2026-03-19)
 
 
