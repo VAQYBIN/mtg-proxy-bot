@@ -86,48 +86,64 @@ PostgreSQL + Redis
 
 ### Требования
 
-- Docker и Docker Compose
+- Docker и Docker Compose (`sudo curl -fsSL https://get.docker.com | sh`)
 - Работающая [MTG Admin Panel](https://github.com/MaksimTMB/mtg-adminpanel)
 
 ### Установка
 
+
 ```bash
-git clone https://github.com/VAQYBIN/mtg-proxy-bot.git
-cd mtg-proxy-bot
+bash <(curl -fsSL git.new/mtg-bot-docker -o docker-compose.yml)
 
-cp .env.example .env
+bash <(curl -fsSL git.new/mtg-bot-env -o .env)
+
 # Заполнить .env (см. раздел Конфигурация)
+nano .env
 
-docker compose up -d
-docker compose logs -f bot
+docker compose up -d && docker compose logs -f
 ```
 
 Миграции применяются автоматически при старте контейнера.
 
-### Продакшн-деплой
-
-Используйте `docker-compose.prod.yml` — он использует собранный образ из registry и `restart: always`:
+### Обновление
 
 ```bash
-docker compose -f docker-compose.prod.yml up -d
+docker compose pull && docker compose down && docker compose up -d && docker compose logs -f
 ```
 
 ---
 
 ## Конфигурация
 
-Скопируйте `.env.example` в `.env` и заполните:
+Отредактируйте `.env` и заполните значения:
+
+| Переменная | Обязательная | Описание |
+|---|---|---|
+| `BOT_TOKEN` | ✅ | Токен бота от [@BotFather](https://t.me/BotFather) |
+| `ADMIN_IDS` | ✅ | Список Telegram ID администраторов, например `[123456789, 987654321]` |
+| `ADMIN_PANEL_URL` | ✅ | URL MTG Admin Panel, например `http://panel-host:3000` или `https://host.panel.com`|
+| `ADMIN_PANEL_TOKEN` | ✅ | Токен доступа к Admin Panel (из .env панели) |
+| `AGENT_TOKEN` | ✅ | Секрет MTG-агента (из .env панели) |
+| `ADMIN_PANEL_TOTP_SECRET` | ❌ | TOTP-секрет для 2FA панели (если включена) |
+| `POSTGRES_USER` | ✅ | Имя пользователя PostgreSQL |
+| `POSTGRES_PASSWORD` | ✅ | Пароль PostgreSQL |
+| `POSTGRES_DB` | ✅ | Имя базы данных PostgreSQL |
+| `POSTGRES_HOST` | ✅ | Хост PostgreSQL (в Docker Compose — `postgres`) |
+| `POSTGRES_PORT` | ✅ | Порт PostgreSQL (обычно `5432`) |
+| `REDIS_HOST` | ✅ | Хост Redis (в Docker Compose — `redis`) |
+| `REDIS_PORT` | ✅ | Порт Redis (обычно `6379`) |
+| `REDIS_DB` | ✅ | Номер базы данных Redis (обычно `0`) |
 
 ```dotenv
 # Telegram Bot
 BOT_TOKEN=123456:ABCDef...
-ADMIN_IDS=[123456789, 987654321]     # ID администраторов через запятую
+ADMIN_IDS=[123456789, 987654321]
 
 # MTG Admin Panel
 ADMIN_PANEL_URL=http://panel-host:3000
 ADMIN_PANEL_TOKEN=your-panel-token
 AGENT_TOKEN=mtg-agent-secret
-ADMIN_PANEL_TOTP_SECRET=              # TOTP-секрет, опционально
+ADMIN_PANEL_TOTP_SECRET=
 
 # PostgreSQL
 POSTGRES_USER=bot
