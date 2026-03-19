@@ -45,6 +45,8 @@ COPY --chown=app:app entrypoint.sh ./
 
 RUN chmod +x entrypoint.sh
 
+EXPOSE 8080
+
 USER app
 
 ENTRYPOINT ["./entrypoint.sh"]

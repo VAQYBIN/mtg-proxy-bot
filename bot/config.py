@@ -23,6 +23,12 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
 
+    WEBHOOK_BASE_URL: str
+    WEBHOOK_PATH: str = "/webhook"
+    WEBHOOK_SECRET: str
+    WEB_SERVER_HOST: str = "0.0.0.0"
+    WEB_SERVER_PORT: int = 8080
+
     @computed_field
     @property
     def database_url(self) -> str:

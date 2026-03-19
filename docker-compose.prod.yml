@@ -9,6 +9,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    ports:
+      - "127.0.0.1:8080:8080"
     restart: always
     networks:
       - mtg-proxy-network
