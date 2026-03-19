@@ -3,7 +3,8 @@ name: Production CI/CD
 on:
   push:
     branches: [main]
-    tags: ['v*.*.*']
+  release:
+    types: [published]
 
 env:
   REGISTRY: ghcr.io
