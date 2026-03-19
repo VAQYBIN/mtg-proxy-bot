@@ -28,11 +28,15 @@ Telegram-бот для управления MTProto-прокси. Интегри
 - Список своих прокси с текущим статусом, количеством устройств и лимитами
 - QR-код и ссылка для быстрого подключения (`tg://proxy?...`)
 - Удаление прокси с подтверждением
+- **FAQ** — встроенный раздел вопросов и ответов (показывается в меню, когда включён администратором)
 
 ### Для администраторов
 
 - **Дашборд нод** — статус онлайн/офлайн, активные соединения, трафик
 - **Управление пользователями** — список, поиск по username или Telegram ID, бан/разбан, удаление с каскадным удалением прокси
+- **Редактирование прокси** — изменение лимитов устройств, трафика, срока действия и интервала сброса трафика на любом прокси пользователя; сброс трафика с подтверждением
+- **Настройки по умолчанию** — задание дефолтных значений `max_devices`, `traffic_limit_gb`, `expires_days`, `traffic_reset_interval`, применяемых при создании нового прокси
+- **Управление FAQ** — добавление, редактирование, удаление и перестановка вопросов; включение/выключение раздела
 - **Рассылка** — HTML-сообщения всем незабаненным пользователям с прогресс-трекингом
 - Синхронизация нод из удалённой панели, включение/выключение нод
 
@@ -78,7 +82,9 @@ MTG Agent (agent_port на каждой ноде)
 PostgreSQL + Redis
 ```
 
-Бот работает в режиме **webhook**: Telegram сам присылает апдейты на HTTPS-эндпоинт, проксируемый через nginx. Это исключает постоянный polling-цикл и снижает задержку обработки сообщений.
+Бот поддерживает два режима работы, управляемых переменной `WEBHOOK_MODE_ENABLED`:
+- **Webhook** (`True`, рекомендуется для продакшна) — Telegram сам присылает апдейты на HTTPS-эндпоинт, проксируемый через nginx.
+- **Polling** (`False`, для локальной разработки) — бот опрашивает Telegram API; nginx и публичный домен не требуются.
 
 ### Ключевые потоки данных
 
@@ -151,11 +157,14 @@ docker compose pull && docker compose down && docker compose up -d && docker com
 
 | Переменная | Обязательная | Описание |
 |---|---|---|
-| `WEBHOOK_BASE_URL` | ✅ | Публичный HTTPS-URL домена, например `https://webhook.domain.com` |
-| `WEBHOOK_PATH` | ✅ | Путь эндпоинта (по умолчанию `/mtg-webhook`) |
-| `WEBHOOK_SECRET` | ✅ | Случайная строка для верификации запросов от Telegram (`openssl rand -hex 16`) |
+| `WEBHOOK_MODE_ENABLED` | ❌ | Режим работы: `True` — webhook (продакшн), `False` — polling (локальная разработка). По умолчанию `True` |
+| `WEBHOOK_BASE_URL` | ✅* | Публичный HTTPS-URL домена, например `https://webhook.domain.com` |
+| `WEBHOOK_PATH` | ✅* | Путь эндпоинта (по умолчанию `/mtg-webhook`) |
+| `WEBHOOK_SECRET` | ✅* | Случайная строка для верификации запросов от Telegram (`openssl rand -hex 16`) |
 | `WEB_SERVER_HOST` | ❌ | Хост aiohttp-сервера (по умолчанию `0.0.0.0`) |
 | `WEB_SERVER_PORT` | ❌ | Порт aiohttp-сервера (по умолчанию `8080`) |
+
+> \* Обязательны только при `WEBHOOK_MODE_ENABLED=True`
 
 ### Пример `.env`
 
@@ -182,7 +191,10 @@ REDIS_HOST=redis
 REDIS_PORT=6379
 REDIS_DB=0
 
-# Webhook
+# Режим работы (True = webhook, False = polling для локальной разработки)
+WEBHOOK_MODE_ENABLED=True
+
+# Webhook (требуется только при WEBHOOK_MODE_ENABLED=True)
 WEBHOOK_BASE_URL=https://webhook.domain.com
 WEBHOOK_PATH=/mtg-webhook
 WEBHOOK_SECRET=replace-with-random-secret
@@ -290,17 +302,25 @@ mtg-proxy-bot/
 │   ├── models/                  # ORM-модели
 │   │   ├── user.py              # User
 │   │   ├── node.py              # Node (proxy-нода)
-│   │   └── proxy.py             # Proxy (прокси пользователя)
+│   │   ├── proxy.py             # Proxy (прокси пользователя)
+│   │   ├── settings.py          # ProxySettings (singleton настроек)
+│   │   └── faq.py               # FAQItem
 │   ├── dao/                     # Data Access Objects (тонкие обёртки над SQLAlchemy)
 │   │   ├── user.py
 │   │   ├── node.py
-│   │   └── proxy.py
+│   │   ├── proxy.py
+│   │   ├── settings.py          # ProxySettingsDAO
+│   │   └── faq.py               # FAQItemDAO
 │   ├── handlers/
 │   │   ├── common.py            # /start, главное меню
 │   │   ├── proxy.py             # Пользовательский флоу прокси
+│   │   ├── faq.py               # Пользовательский FAQ
 │   │   └── admin/
 │   │       ├── dashboard.py     # Дашборд нод
 │   │       ├── users.py         # Управление пользователями
+│   │       ├── proxy_edit.py    # Редактирование прокси пользователя
+│   │       ├── settings.py      # Настройки прокси по умолчанию
+│   │       ├── faq.py           # Управление FAQ
 │   │       └── broadcast.py     # Рассылка
 │   ├── middleware/
 │   │   ├── db.py                # Инжекция AsyncSession в хендлеры
@@ -327,6 +347,10 @@ mtg-proxy-bot/
 **nodes** — `panel_id` (ID на удалённой панели), `name`, `host`, `flag`, `agent_port`, `is_active`
 
 **proxies** — `user_id`, `node_id`, `mtg_username` (формат `tg_{telegram_id}`), `link`, `port`, `secret`, `expires_at`, `traffic_limit_gb`, `is_active`
+
+**proxy_settings** — singleton-строка с дефолтными лимитами: `max_devices`, `traffic_limit_gb`, `expires_days`, `traffic_reset_interval`, `faq_enabled`
+
+**faq_items** — `question`, `answer`, `position` (для сортировки), `created_at`
 
 ---
 
