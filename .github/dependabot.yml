@@ -1,0 +1,26 @@
+version: 2
+updates:
+  # Python зависимости (pyproject.toml)
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 5
+    groups:
+      aiogram:
+        patterns:
+          - "aiogram*"
+      sqlalchemy:
+        patterns:
+          - "sqlalchemy*"
+          - "asyncpg*"
+          - "alembic*"
+
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 3
