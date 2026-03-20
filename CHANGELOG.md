@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/VAQYBIN/mtg-proxy-bot/compare/v1.2.0...v1.3.0) (2026-03-20)
+
+
+### Features
+
+* add referral system with invite links and proxy sharing ([92e8eaf](https://github.com/VAQYBIN/mtg-proxy-bot/commit/92e8eafdf4b5761ca900d1229cbc74b4abbaf28a))
+* add referral system with invite links and proxy sharing ([a259886](https://github.com/VAQYBIN/mtg-proxy-bot/commit/a25988689f0f874f7fcc7b24ae01890dad5c48c6))
+
 ## [1.2.0](https://github.com/VAQYBIN/mtg-proxy-bot/compare/v1.1.0...v1.2.0) (2026-03-19)
 
 
