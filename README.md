@@ -28,12 +28,13 @@ Telegram-бот для управления MTProto-прокси. Интегри
 - Список своих прокси с текущим статусом, количеством устройств и лимитами
 - QR-код и ссылка для быстрого подключения (`tg://proxy?...`)
 - Удаление прокси с подтверждением
+- **Реферальная система** — кнопка «Поделиться» в просмотре прокси отправляет реферальную ссылку на бота; при желании в текст можно включить и сам прокси (`SHARE_PROXY_ON_INVITE_ENABLED`)
 - **FAQ** — встроенный раздел вопросов и ответов (показывается в меню, когда включён администратором)
 
 ### Для администраторов
 
 - **Дашборд нод** — статус онлайн/офлайн, активные соединения, трафик
-- **Управление пользователями** — список, поиск по username или Telegram ID, бан/разбан, удаление с каскадным удалением прокси
+- **Управление пользователями** — список, поиск по username или Telegram ID, бан/разбан, удаление с каскадным удалением прокси и синхронным удалением пользователей на панели
 - **Редактирование прокси** — изменение лимитов устройств, трафика, срока действия и интервала сброса трафика на любом прокси пользователя; сброс трафика с подтверждением
 - **Настройки по умолчанию** — задание дефолтных значений `max_devices`, `traffic_limit_gb`, `expires_days`, `traffic_reset_interval`, применяемых при создании нового прокси
 - **Управление FAQ** — добавление, редактирование, удаление и перестановка вопросов; включение/выключение раздела
@@ -144,6 +145,7 @@ docker compose pull && docker compose down && docker compose up -d && docker com
 | `ADMIN_PANEL_TOKEN` | ✅ | Токен доступа к Admin Panel (из .env панели) |
 | `AGENT_TOKEN` | ✅ | Секрет MTG-агента (из .env панели) |
 | `ADMIN_PANEL_TOTP_SECRET` | ❌ | TOTP-секрет для 2FA панели (если включена) |
+| `SHARE_PROXY_ON_INVITE_ENABLED` | ❌ | Включать ли прокси-ссылку в текст при шаринге через реферальную кнопку. По умолчанию `False` |
 | `POSTGRES_USER` | ✅ | Имя пользователя PostgreSQL |
 | `POSTGRES_PASSWORD` | ✅ | Пароль PostgreSQL |
 | `POSTGRES_DB` | ✅ | Имя базы данных PostgreSQL |
@@ -178,6 +180,7 @@ ADMIN_PANEL_URL=http://panel-host:3000
 ADMIN_PANEL_TOKEN=your-panel-token
 AGENT_TOKEN=mtg-agent-secret
 ADMIN_PANEL_TOTP_SECRET=
+SHARE_PROXY_ON_INVITE_ENABLED=False
 
 # PostgreSQL
 POSTGRES_USER=bot
@@ -342,7 +345,7 @@ mtg-proxy-bot/
 
 ### Схема БД
 
-**users** — `telegram_id`, `username`, `first_name`, `is_banned`, `created_at`
+**users** — `telegram_id`, `username`, `first_name`, `is_banned`, `referred_by_id` (FK → users), `created_at`
 
 **nodes** — `panel_id` (ID на удалённой панели), `name`, `host`, `flag`, `agent_port`, `is_active`
 
