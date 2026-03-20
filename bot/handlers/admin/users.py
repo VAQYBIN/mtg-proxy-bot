@@ -574,6 +574,14 @@ async def handle_user_delete_confirm(
         return
 
     label = _user_label(user)
+
+    user_proxies = await ProxyDAO(session).get_user_proxies(user.id)
+    for proxy in user_proxies:
+        try:
+            await admin_panel.delete_user(proxy.node.panel_id, proxy.mtg_username)
+        except Exception:
+            pass
+
     await dao.delete(user)
 
     await state.set_state(None)

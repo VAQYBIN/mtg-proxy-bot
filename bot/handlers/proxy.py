@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timedelta, timezone
 from urllib.parse import urlencode
 
@@ -18,6 +19,7 @@ from bot.callbacks import (
     ProxyDeleteConfirmCallback,
     ProxyViewCallback,
 )
+from bot.config import settings
 from bot.dao import NodeDAO, ProxyDAO, ProxySettingsDAO, UserDAO
 from bot.models.proxy import Proxy
 from bot.services.admin_panel import admin_panel
@@ -36,18 +38,39 @@ def _tme_link(proxy: Proxy) -> str:
     )
 
 
-def _share_url(proxy: Proxy, bot_username: str) -> str:
-    text = f"Бесплатный MTProto прокси от @{bot_username} 👆"
-    return "https://t.me/share/url?" + urlencode(
-        {"url": _tme_link(proxy), "text": text}
-    )
+def _encode_ref(user_telegram_id: int) -> str:
+    return base64.urlsafe_b64encode(
+        str(user_telegram_id).encode()
+    ).rstrip(b"=").decode()
 
 
-def _proxy_detail_keyboard(proxy: Proxy, bot_username: str) -> InlineKeyboardMarkup:
+def _share_url(
+    bot_username: str,
+    user_telegram_id: int,
+    proxy_link: str | None = None,
+) -> str:
+    ref_link = f"t.me/{bot_username}?start=r{_encode_ref(user_telegram_id)}"
+    if proxy_link:
+        text = (
+            "\nПолучи свой бесплатный прокси — работает без регистрации! 🔒\n\n"
+            f"Мой прокси для Telegram:\n{proxy_link}"
+        )
+    else:
+        text = "\nПолучи свой прокси для Telegram — работает без регистрации! 🔒"
+    return "https://t.me/share/url?" + urlencode({"url": ref_link, "text": text})
+
+
+def _proxy_detail_keyboard(
+    proxy: Proxy,
+    bot_username: str,
+    user_telegram_id: int,
+    proxy_link: str | None = None,
+) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔌 Подключиться", url=proxy.link)],
         [InlineKeyboardButton(
-            text="📤 Поделиться", url=_share_url(proxy, bot_username)
+            text="📤 Поделиться",
+            url=_share_url(bot_username, user_telegram_id, proxy_link),
         )],
         [InlineKeyboardButton(
             text="🗑 Удалить прокси",
@@ -149,15 +172,19 @@ async def _send_proxy_photo(
     message: Message,
     proxy: Proxy,
     bot_username: str,
+    user_telegram_id: int,
     current_devices: int | None = None,
     max_devices: int | None = None,
 ) -> None:
+    proxy_link = _tme_link(proxy) if settings.SHARE_PROXY_ON_INVITE_ENABLED else None
     qr_buf = build_qr_bytes(_tme_link(proxy))
     await message.answer_photo(
         photo=BufferedInputFile(qr_buf.read(), filename="qr.png"),
         caption=_format_proxy_caption(proxy, current_devices, max_devices),
         parse_mode="HTML",
-        reply_markup=_proxy_detail_keyboard(proxy, bot_username),
+        reply_markup=_proxy_detail_keyboard(
+            proxy, bot_username, user_telegram_id, proxy_link
+        ),
     )
 
 
@@ -285,6 +312,9 @@ async def handle_node_select(
         f"🌐 <b>Нода:</b> {flag_emoji(node.flag)} {node.name}\n\n"
         f"🔗 <b>Ссылка для подключения:</b>\n<code>{_tme_link(proxy)}</code>"
     )
+    share_proxy_link = (
+        _tme_link(proxy) if settings.SHARE_PROXY_ON_INVITE_ENABLED else None
+    )
     qr_buf = build_qr_bytes(_tme_link(proxy))
     await call.message.answer_photo(
         photo=BufferedInputFile(qr_buf.read(), filename="qr.png"),
@@ -293,7 +323,8 @@ async def handle_node_select(
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="🔌 Подключиться", url=proxy.link)],
             [InlineKeyboardButton(
-                text="📤 Поделиться", url=_share_url(proxy, bot_username),
+                text="📤 Поделиться",
+                url=_share_url(bot_username, call.from_user.id, share_proxy_link),
             )],
             [InlineKeyboardButton(text="◀️ В главное меню", callback_data="menu:main")],
         ]),
@@ -344,7 +375,8 @@ async def handle_proxy_view(
     current_devices, max_devices = await _fetch_device_info(proxy)
     await _delete_message(call.message)
     await _send_proxy_photo(
-        call.message, proxy, bot_username, current_devices, max_devices
+        call.message, proxy, bot_username, call.from_user.id,
+        current_devices, max_devices,
     )
     await call.answer()
 

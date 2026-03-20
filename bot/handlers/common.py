@@ -1,5 +1,7 @@
+import base64
+
 from aiogram import F, Router
-from aiogram.filters import CommandStart
+from aiogram.filters import CommandObject, CommandStart
 from aiogram.types import (
     CallbackQuery,
     InlineKeyboardButton,
@@ -26,9 +28,24 @@ def main_menu_keyboard(faq_enabled: bool = False) -> InlineKeyboardMarkup:
 
 
 @router.message(CommandStart())
-async def handle_start(message: Message, session: AsyncSession) -> None:
+async def handle_start(
+    message: Message, session: AsyncSession, command: CommandObject
+) -> None:
     dao = UserDAO(session)
     user, is_new = await dao.get_or_create(message.from_user)
+
+    if is_new and command.args and command.args.startswith("r"):
+        try:
+            payload = command.args[1:]
+            padded = payload + "=" * (-len(payload) % 4)
+            referrer_tg_id = int(base64.urlsafe_b64decode(padded).decode())
+            if referrer_tg_id != message.from_user.id:
+                referrer = await dao.get_by_telegram_id(referrer_tg_id)
+                if referrer:
+                    user.referred_by_id = referrer.id
+                    await session.commit()
+        except (ValueError, Exception):
+            pass
 
     settings = await ProxySettingsDAO(session).get()
     faq_enabled = settings.faq_enabled if settings else False

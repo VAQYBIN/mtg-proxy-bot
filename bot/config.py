@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
 
+    SHARE_PROXY_ON_INVITE_ENABLED: bool = False
+
     # True = webhook (production), False = polling (local development)
     WEBHOOK_MODE_ENABLED: bool = True
 
