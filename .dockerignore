@@ -87,3 +87,14 @@ venv/
 
 # VS Code
 .vscode/
+
+# Claude
+CLAUDE.md
+.claude/
+
+# Documentation (README.md excluded — required by pyproject.toml)
+CHANGELOG.md
+docs/
+
+# Node
+node_modules/

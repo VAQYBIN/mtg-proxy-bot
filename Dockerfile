@@ -1,7 +1,7 @@
 # ──────────────────────────
 # Build stage
 # ──────────────────────────
-FROM python:3.13-slim AS builder
+FROM python:3.13-alpine AS builder
 
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
 
@@ -11,7 +11,8 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     VIRTUAL_ENV=/opt/venv
 
-RUN uv venv /opt/venv
+RUN apk add --no-cache gcc musl-dev libpq-dev zlib-dev jpeg-dev && \
+    uv venv /opt/venv
 
 # Install dependencies first — separate layer so code changes don't bust this cache
 COPY pyproject.toml README.md ./
@@ -27,10 +28,10 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # ──────────────────────────
 # Runtime stage
 # ──────────────────────────
-FROM python:3.13-slim
+FROM python:3.13-alpine
 
-RUN groupadd --gid 1001 app && \
-    useradd --uid 1001 --gid app --no-create-home --shell /sbin/nologin app
+RUN addgroup -g 1001 app && \
+    adduser -u 1001 -G app -H -s /sbin/nologin -D app
 
 WORKDIR /app
 
