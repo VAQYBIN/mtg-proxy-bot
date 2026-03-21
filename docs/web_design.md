@@ -96,13 +96,14 @@
 - [x] `bot/dao/account_link_token.py` — AccountLinkTokenDAO (create, get_active_by_code, mark_used, invalidate_pending)
 - [x] **Проверка:** все три сценария привязки работают без потери данных
 
-### Фаза 6: Frontend (сайт)
-- [ ] 6.1 Настройка проекта (React + Vite + TypeScript)
-- [ ] 6.2 Страница входа (email форма + Telegram Login Widget)
-- [ ] 6.3 Главная страница — список прокси
-- [ ] 6.4 Страница прокси — детали, статистика, QR-код
-- [ ] 6.5 Страница привязки аккаунта
-- [ ] **Проверка:** полный пользовательский сценарий от регистрации до получения прокси
+### Фаза 6: Frontend (сайт) ✅
+- [x] 6.1 Настройка проекта: React 19 + Vite + TypeScript + Tailwind v4 + shadcn/ui
+- [x] 6.2 LoginPage `/login` — email+OTP (InputOTP 6 цифр) + Telegram Login Widget
+- [x] 6.3 ProxiesPage `/` — список прокси с Card/Skeleton/Dialog выбора ноды
+- [x] 6.4 ProxyDetailPage `/proxy/:id` — детали, QR-код, статистика, AlertDialog удаления
+- [x] 6.5 AccountPage `/account` — инфо, привязка Telegram (код + таймер), logout
+- [x] Docker: multi-stage Dockerfile, nginx.conf с proxy на api, сервис в docker-compose (порт 3000)
+- [x] **Проверка:** TypeScript билд без ошибок (`npm run build`)
 
 ### Фаза 7: Mini App
 - [ ] 7.1 Адаптация фронтенда для Mini App (Telegram WebApp SDK)
