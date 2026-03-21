@@ -57,6 +57,11 @@ def _share_url(
         )
     else:
         text = "\nПолучи свой прокси для Telegram — работает без регистрации! 🔒"
+    if settings.VPN_ADS_ON_SHARE_LINK:
+        text += (
+            "\n\nТакже если у тебя не грузит YouTube и другие зарубежные сервисы"
+            f" — рекомендую {settings.VPN_ADS_ON_SHARE_LINK}"
+        )
     return "https://t.me/share/url?" + urlencode({"url": ref_link, "text": text})
 
 

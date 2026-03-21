@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
 
     SHARE_PROXY_ON_INVITE_ENABLED: bool = False
+    VPN_ADS_ON_SHARE_LINK: str | None = None
 
     # True = webhook (production), False = polling (local development)
     WEBHOOK_MODE_ENABLED: bool = True

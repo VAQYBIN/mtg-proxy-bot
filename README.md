@@ -146,6 +146,7 @@ docker compose pull && docker compose down && docker compose up -d && docker com
 | `AGENT_TOKEN` | ✅ | Секрет MTG-агента (из .env панели) |
 | `ADMIN_PANEL_TOTP_SECRET` | ❌ | TOTP-секрет для 2FA панели (если включена) |
 | `SHARE_PROXY_ON_INVITE_ENABLED` | ❌ | Включать ли прокси-ссылку в текст при шаринге через реферальную кнопку. По умолчанию `False` |
+| `VPN_ADS_ON_SHARE_LINK` | ❌ | Ссылка на свой или рекламный VPN-сервис. Если указана — в текст кнопки «Поделиться» добавляется строка с рекомендацией сервиса. По умолчанию пусто (строка не добавляется) |
 | `POSTGRES_USER` | ✅ | Имя пользователя PostgreSQL |
 | `POSTGRES_PASSWORD` | ✅ | Пароль PostgreSQL |
 | `POSTGRES_DB` | ✅ | Имя базы данных PostgreSQL |
@@ -181,6 +182,7 @@ ADMIN_PANEL_TOKEN=your-panel-token
 AGENT_TOKEN=mtg-agent-secret
 ADMIN_PANEL_TOTP_SECRET=
 SHARE_PROXY_ON_INVITE_ENABLED=False
+VPN_ADS_ON_SHARE_LINK=
 
 # PostgreSQL
 POSTGRES_USER=bot
