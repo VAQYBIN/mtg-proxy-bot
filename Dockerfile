@@ -20,8 +20,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip compile pyproject.toml -o /tmp/requirements.txt && \
     uv pip install -r /tmp/requirements.txt
 
-# Install the project itself (non-editable so bot/ lands in site-packages)
+# Install the project itself (non-editable so bot/ and api/ land in site-packages)
 COPY bot/ bot/
+COPY api/ api/
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv pip install --no-deps "mtg-proxy-bot @ ."
 
@@ -42,9 +43,9 @@ ENV PATH="/opt/venv/bin:$PATH" \
 COPY --from=builder --chown=app:app /opt/venv /opt/venv
 COPY --chown=app:app alembic/ alembic/
 COPY --chown=app:app alembic.ini ./
-COPY --chown=app:app entrypoint.sh ./
+COPY --chown=app:app entrypoint.sh entrypoint-api.sh ./
 
-RUN chmod +x entrypoint.sh
+RUN chmod +x entrypoint.sh entrypoint-api.sh
 
 EXPOSE 8080
 

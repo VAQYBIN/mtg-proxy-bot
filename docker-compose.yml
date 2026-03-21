@@ -19,6 +19,27 @@ services:
     networks:
       - mtg-proxy-network
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mtg-proxy-api
+    hostname: mtg-proxy-api
+    env_file: .env
+    entrypoint: ["sh", "entrypoint-api.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      bot:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - .:/app
+    restart: unless-stopped
+    networks:
+      - mtg-proxy-network
+
   postgres:
     image: postgres:17-alpine
     container_name: mtg-proxy-postgres

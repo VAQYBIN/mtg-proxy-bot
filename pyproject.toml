@@ -23,10 +23,13 @@ dependencies = [
   "pyotp>=2.9",
   "pydantic-settings>=2.0",
   "qrcode[pil]>=8.0",
+  "fastapi>=0.115",
+  "uvicorn[standard]>=0.32",
+  "python-jose[cryptography]>=3.3",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["bot"]
+packages = ["bot", "api"]
 
 [project.optional-dependencies]
 dev = [
