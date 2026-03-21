@@ -67,22 +67,26 @@
 - [x] 2.6 Добавить новые env vars в `bot/config.py` (API_SECRET_KEY, JWT_EXPIRE_HOURS, RESEND_API_KEY, EMAIL_FROM, SITE_URL)
 - [x] **Проверка:** `GET /health` → `{"status":"ok","db":"ok"}`, JWT encode/decode работает, UserDAO из API доступен
 
-### Фаза 3: Авторизация
-- [ ] 3.1 `POST /auth/email/register` — регистрация, отправка письма с кодом
-- [ ] 3.2 `POST /auth/email/verify` — подтверждение кода из письма → JWT
-- [ ] 3.3 `POST /auth/email/resend` — повторная отправка кода
-- [ ] 3.4 `POST /auth/telegram/widget` — вход через Telegram Login Widget → JWT
-- [ ] 3.5 `POST /auth/telegram/miniapp` — вход через Mini App initData → JWT
-- [ ] **Проверка:** все сценарии входа работают, JWT валидируется на защищённых endpoint'ах
+### Фаза 3: Авторизация ✅
+- [x] 3.1 `POST /auth/email/register` → 202, код в логах (fallback) или Resend
+- [x] 3.2 `POST /auth/email/verify {email, code}` → JWT; неверный/истёкший → 400
+- [x] 3.3 `GET /auth/email/verify?token=` → JWT по ссылке из письма
+- [x] 3.4 `POST /auth/email/resend` → аннулирует старые коды, создаёт новый
+- [x] 3.5 `POST /auth/telegram/widget` → HMAC-SHA256 верификация + JWT; невалидный hash → 401; устаревший auth_date → 401
+- [x] 3.6 `POST /auth/telegram/miniapp` → WebAppData HMAC верификация + JWT
+- [x] 3.7 `bot/dao/email_verification.py` — EmailVerificationDAO (create, get_active_by_code, get_active_by_token, mark_used, invalidate_pending)
+- [x] 3.8 `api/email_service.py` — Resend интеграция с fallback на лог
+- [x] **Проверка:** все 5 endpoints возвращают JWT; повторный вход тем же email → тот же user_id; использованный код → 400; неверный hash → 401
 
-### Фаза 4: API — пользователь
-- [ ] 4.1 `GET /api/me` — профиль текущего пользователя
-- [ ] 4.2 `GET /api/proxies` — список прокси пользователя
-- [ ] 4.3 `POST /api/proxies` — создать прокси (переиспользовать логику бота)
-- [ ] 4.4 `DELETE /api/proxies/{id}` — удалить прокси
-- [ ] 4.5 `GET /api/proxies/{id}/stats` — статистика прокси (трафик, подключения)
-- [ ] 4.6 `GET /api/nodes` — список доступных нод
-- [ ] **Проверка:** все endpoint'ы работают для email-пользователя и Telegram-пользователя
+### Фаза 4: API — пользователь ✅
+- [x] 4.1 `GET /api/me` → профиль; без токена → 401; невалидный токен → 401
+- [x] 4.2 `GET /api/nodes` → список активных нод
+- [x] 4.3 `GET /api/proxies` → список прокси пользователя (пустой для нового)
+- [x] 4.4 `POST /api/proxies {node_id}` → 201 + proxy; дубль → 409; несуществующая нода → 404
+- [x] 4.5 `DELETE /api/proxies/{id}` → 204; чужой → 403; повторно → 404
+- [x] 4.6 `GET /api/proxies/{id}/stats` → connections/max_devices/traffic из panel summary
+- [x] Примечание: mtg_username для web-юзеров = `web_{user.id}`, для Telegram = `tg_{telegram_id}`
+- [x] **Проверка:** все статус-коды верные, прокси создаётся и удаляется на панели, stats возвращает данные
 
 ### Фаза 5: Привязка аккаунтов
 - [ ] 5.1 `POST /api/me/link/request` — запрос кода привязки (для web-пользователя)
