@@ -23,15 +23,10 @@ dependencies = [
   "pyotp>=2.9",
   "pydantic-settings>=2.0",
   "qrcode[pil]>=8.0",
-  "fastapi>=0.115",
-  "uvicorn[standard]>=0.32",
-  "python-multipart>=0.0.9",
-  "python-jose[cryptography]>=3.3",
-  "email-validator>=2.0",
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["bot", "api"]
+packages = ["bot"]
 
 [project.optional-dependencies]
 dev = [
@@ -48,4 +43,3 @@ testpaths = ["tests"]
 [tool.flake8]
 max-line-length = 88
 exclude = [".venv", ".git", "__pycache__", "alembic"]
-per-file-ignores = ["api/email_service.py:E501"]

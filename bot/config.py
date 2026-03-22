@@ -26,17 +26,6 @@ class Settings(BaseSettings):
     SHARE_PROXY_ON_INVITE_ENABLED: bool = False
     VPN_ADS_ON_SHARE_LINK: str | None = None
 
-    # Web API / JWT
-    API_SECRET_KEY: str = "change-me-in-production"
-    JWT_EXPIRE_HOURS: int = 720  # 30 дней
-
-    # Email (Resend)
-    RESEND_API_KEY: str | None = None
-    EMAIL_FROM: str = "noreply@example.com"
-
-    # Site URL (используется в письмах для ссылок подтверждения)
-    SITE_URL: str = "http://localhost:3000"
-
     # True = webhook (production), False = polling (local development)
     WEBHOOK_MODE_ENABLED: bool = True
 

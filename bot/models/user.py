@@ -10,22 +10,11 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-
-    # Telegram-поля (nullable — пользователь может быть зарегистрирован только по email)
-    telegram_id: Mapped[int | None] = mapped_column(
-        BigInteger, unique=True, nullable=True, index=True
-    )
+    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, index=True)
     username: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    first_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    first_name: Mapped[str] = mapped_column(String(128))
     last_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
     language_code: Mapped[str | None] = mapped_column(String(8), nullable=True)
-
-    # Email-поля (nullable — пользователь может быть только из Telegram)
-    email: Mapped[str | None] = mapped_column(
-        String(255), unique=True, nullable=True, index=True
-    )
-    email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
-    display_name: Mapped[str | None] = mapped_column(String(128), nullable=True)
 
     is_banned: Mapped[bool] = mapped_column(Boolean, default=False)
 
