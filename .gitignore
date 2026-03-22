@@ -223,3 +223,4 @@ package.json
 # Claude
 .claude
 CLAUDE.md
+.mcp.json

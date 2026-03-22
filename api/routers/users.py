@@ -164,14 +164,18 @@ async def link_miniapp(
 
     # Два отдельных аккаунта → merge (старший остаётся основным)
     if tg_user_db.created_at <= current_user.created_at:
-        # Telegram-аккаунт старше → оставляем его, current_user удаляем
-        if tg_user_db.email is None:
-            tg_user_db.email = current_user.email
-            tg_user_db.email_verified = current_user.email_verified
-            await session.commit()
+        # Telegram-аккаунт старше → сначала merge (удаляет current_user и
+        # освобождает unique email), затем безопасно присваиваем email.
+        web_email = current_user.email if tg_user_db.email is None else None
+        web_email_verified = current_user.email_verified
         merged = await user_dao.merge_into(
             source=current_user, target=tg_user_db
         )
+        if web_email:
+            merged.email = web_email
+            merged.email_verified = web_email_verified
+            await session.commit()
+            await session.refresh(merged)
         new_token = create_access_token(merged.id)
         return LinkMiniAppResponse(
             user=UserResponse.model_validate(merged),
