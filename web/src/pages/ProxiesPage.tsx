@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { Plus, ShieldOff } from 'lucide-react'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { createProxy, getNodes, getProxies } from '@/api/proxies'
@@ -87,7 +88,7 @@ export default function ProxiesPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="border-b px-4 py-3 flex items-center justify-between">
+      <header className="sticky top-0 z-10 bg-background border-b shadow-sm px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2 font-semibold text-lg">
           {brandLogoUrl && (
             <img src={brandLogoUrl} alt="" className="h-8 w-8 object-contain" />
@@ -115,7 +116,8 @@ export default function ProxiesPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-xl font-semibold">Мои прокси</h1>
           <Button onClick={openCreateDialog} disabled={nodes.length === 0}>
-            + Создать прокси
+            <Plus className="h-4 w-4 mr-1" />
+            Создать прокси
           </Button>
         </div>
 
@@ -132,8 +134,9 @@ export default function ProxiesPage() {
             ))}
           </div>
         ) : proxies.length === 0 ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <p className="text-lg">У вас пока нет прокси</p>
+          <div className="text-center py-16 text-muted-foreground">
+            <ShieldOff className="mx-auto mb-4 h-16 w-16 opacity-40" />
+            <p className="text-lg font-medium">У вас пока нет прокси</p>
             <p className="text-sm mt-1">Нажмите «Создать прокси», чтобы начать</p>
           </div>
         ) : (
@@ -141,7 +144,7 @@ export default function ProxiesPage() {
             {proxies.map((proxy) => (
               <Card
                 key={proxy.id}
-                className="cursor-pointer hover:border-primary/50 transition-colors"
+                className="cursor-pointer border-l-4 border-l-primary hover:border-primary/50 transition-colors"
                 onClick={() => navigate(`/proxy/${proxy.id}`)}
               >
                 <CardHeader className="pb-2">
@@ -149,7 +152,7 @@ export default function ProxiesPage() {
                     <CardTitle className="text-base font-mono">
                       {proxy.node.host}:{proxy.port}
                     </CardTitle>
-                    <Badge variant="secondary">MTProto</Badge>
+                    <Badge className="bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-800">MTProto</Badge>
                   </div>
                 </CardHeader>
                 <CardContent className="pt-0">

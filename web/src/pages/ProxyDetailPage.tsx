@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
+import { Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { deleteProxy, getProxies, getProxyStats } from '@/api/proxies'
@@ -20,6 +21,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 
 export default function ProxyDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -96,7 +98,7 @@ export default function ProxyDetailPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-10 bg-background border-b shadow-sm px-4 py-3 flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
           ← Назад
         </Button>
@@ -109,7 +111,7 @@ export default function ProxyDetailPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-base">Данные подключения</CardTitle>
-              <Badge variant="secondary">MTProto</Badge>
+              <Badge className="bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-100 dark:bg-blue-900 dark:text-blue-300 dark:border-blue-800">MTProto</Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -123,31 +125,31 @@ export default function ProxyDetailPage() {
               truncate
               onCopy={() => copyToClipboard(proxy.secret, 'Секрет')}
             />
-            <Separator />
-            <div className="pt-1">
-              <Button
-                className="w-full"
-                onClick={() => copyToClipboard(proxy.tme_link, 'Ссылка')}
-              >
-                Копировать ссылку
-              </Button>
-              <a
-                href={proxy.tme_link}
-                className="mt-2 block text-center text-sm text-primary underline"
-              >
-                Открыть в Telegram
-              </a>
-            </div>
           </CardContent>
         </Card>
 
-        {/* QR code */}
+        {/* QR code + actions */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">QR-код</CardTitle>
+            <CardTitle className="text-base">QR-код и подключение</CardTitle>
           </CardHeader>
-          <CardContent className="flex justify-center py-2">
-            <QRCodeSVG value={proxy.tme_link} size={200} />
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
+              <div className="flex justify-center">
+                <QRCodeSVG value={proxy.tme_link} size={180} />
+              </div>
+              <div className="flex flex-col gap-3">
+                <Button className="w-full" onClick={() => copyToClipboard(proxy.tme_link, 'Ссылка')}>
+                  Копировать ссылку
+                </Button>
+                <a
+                  href={proxy.tme_link}
+                  className="block text-center text-sm text-primary underline"
+                >
+                  Открыть в Telegram
+                </a>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -226,9 +228,15 @@ function Row({
         <p className="text-xs text-muted-foreground">{label}</p>
         <p className={`text-sm font-mono ${truncate ? 'truncate max-w-[220px]' : ''}`}>{value}</p>
       </div>
-      <Button size="sm" variant="ghost" onClick={onCopy}>
-        Копировать
-      </Button>
+      <Tooltip>
+        <TooltipTrigger
+          className="shrink-0 inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+          onClick={onCopy}
+        >
+          <Copy className="h-4 w-4" />
+        </TooltipTrigger>
+        <TooltipContent>Копировать</TooltipContent>
+      </Tooltip>
     </div>
   )
 }
