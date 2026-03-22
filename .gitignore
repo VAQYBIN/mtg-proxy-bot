@@ -217,8 +217,10 @@ __marimo__/
 
 # PIP dependencies
 node_modules/
-package-lock.json
-package.json
+
+# Root-level Node artifacts (not part of the project)
+/package.json
+/package-lock.json
 
 # Claude
 .claude
