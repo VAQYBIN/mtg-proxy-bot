@@ -217,8 +217,6 @@ __marimo__/
 
 # PIP dependencies
 node_modules/
-package-lock.json
-package.json
 
 # Claude
 .claude
