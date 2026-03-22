@@ -45,9 +45,7 @@ def _user_label(user: User) -> str:
     name = user.first_name or ""
     if user.last_name:
         name += f" {user.last_name}"
-    suffix = f"@{user.username}" if user.username else (
-        str(user.telegram_id) if user.telegram_id else user.email or f"id:{user.id}"
-    )
+    suffix = f"@{user.username}" if user.username else str(user.telegram_id)
     return f"{name} ({suffix})" if name else suffix
 
 
