@@ -19,6 +19,28 @@ services:
     networks:
       - mtg-proxy-network
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mtg-proxy-api
+    hostname: mtg-proxy-api
+    env_file: .env
+    entrypoint: ["sh", "entrypoint-api.sh"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      bot:
+        condition: service_started
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - .:/app
+      - uploads_data:/app/uploads
+    restart: unless-stopped
+    networks:
+      - mtg-proxy-network
+
   postgres:
     image: postgres:17-alpine
     container_name: mtg-proxy-postgres
@@ -37,6 +59,22 @@ services:
     networks:
       - mtg-proxy-network
 
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+      args:
+        VITE_BOT_USERNAME: ${VITE_BOT_USERNAME:-}
+    container_name: mtg-proxy-web
+    hostname: mtg-proxy-web
+    depends_on:
+      - api
+    ports:
+      - "127.0.0.1:3000:80"
+    restart: unless-stopped
+    networks:
+      - mtg-proxy-network
+
   redis:
     image: redis:7-alpine
     container_name: mtg-proxy-redis
@@ -47,6 +85,7 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:
 
 networks:
   mtg-proxy-network:
