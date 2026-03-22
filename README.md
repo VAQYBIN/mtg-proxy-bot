@@ -39,7 +39,7 @@ Telegram-бот + веб-приложение для управления MTProt
 - **Привязка Telegram-аккаунта** к email-аккаунту (`/link <код>` в боте)
 - Страница аккаунта: имя, email, статус подтверждения, привязанный Telegram
 
-### Для администраторов
+### Для администраторов (бот)
 
 - **Дашборд нод** — статус онлайн/офлайн, активные соединения, трафик
 - **Управление пользователями** — список, поиск, бан/разбан, удаление с каскадным удалением прокси
@@ -48,6 +48,12 @@ Telegram-бот + веб-приложение для управления MTProt
 - **Управление FAQ** — добавление, редактирование, удаление и сортировка вопросов
 - **Рассылка** — HTML-сообщения всем незабаненным пользователям с прогресс-трекингом
 - Синхронизация нод из удалённой панели, включение/выключение нод
+
+### Для администраторов (веб-панель `/admin`)
+
+- **Брендинг** — смена названия сервиса (отображается на всех страницах и в заголовке вкладки)
+- **Логотип** — загрузка изображения (PNG, JPEG, SVG, WebP, GIF до 2 МБ); отображается рядом с названием на странице входа и в шапке
+- Доступ автоматически для пользователей, чей `telegram_id` указан в `ADMIN_IDS`
 
 ---
 
@@ -399,6 +405,7 @@ mtg-proxy-bot/
 │   │   ├── proxy.py             # Proxy
 │   │   ├── settings.py          # ProxySettings (singleton)
 │   │   ├── faq.py               # FAQItem
+│   │   ├── site_setting.py      # SiteSetting (key-value: brand_name, brand_logo_url)
 │   │   ├── email_verification.py
 │   │   └── account_link_token.py
 │   ├── dao/                     # Data Access Objects
@@ -407,6 +414,7 @@ mtg-proxy-bot/
 │   │   ├── proxy.py
 │   │   ├── settings.py
 │   │   ├── faq.py
+│   │   ├── site_setting.py      # Брендинг: brand_name, brand_logo_url
 │   │   ├── email_verification.py
 │   │   └── account_link_token.py
 │   ├── handlers/
@@ -439,14 +447,16 @@ mtg-proxy-bot/
 │       ├── auth.py              # Email OTP, Telegram Widget, Mini App
 │       ├── users.py             # GET /api/me, POST /api/me/link-request
 │       ├── proxies.py           # CRUD прокси
+│       ├── pub_settings.py      # GET /api/settings (публичный, без авторизации)
+│       ├── admin.py             # GET/PUT /api/admin/settings, POST /api/admin/settings/logo
 │       └── health.py
 ├── web/                         # React SPA (Vite + TypeScript)
 │   ├── src/
 │   │   ├── api/                 # Клиент API (fetch-обёртки)
 │   │   ├── components/ui/       # shadcn/ui компоненты
-│   │   ├── hooks/               # useAuth
+│   │   ├── hooks/               # useAuth, useBranding
 │   │   ├── lib/                 # telegram.ts (isMiniApp)
-│   │   ├── pages/               # LoginPage, ProxiesPage, ProxyDetailPage, AccountPage
+│   │   ├── pages/               # LoginPage, ProxiesPage, ProxyDetailPage, AccountPage, AdminSettingsPage
 │   │   └── types/               # telegram.d.ts
 │   ├── Dockerfile               # Multi-stage: node builder → nginx
 │   ├── nginx.conf               # SPA + proxy /api/ /auth/ → api:8000
@@ -478,6 +488,8 @@ mtg-proxy-bot/
 **email_verifications** — `email`, `code`, `token`, `used`, `expires_at`
 
 **account_link_tokens** — `user_id`, `code`, `used`, `expires_at`
+
+**site_settings** — `key` (PK), `value`, `updated_at` — брендинг: `brand_name`, `brand_logo_url`
 
 ---
 
