@@ -28,6 +28,8 @@ services:
         condition: service_started
     ports:
       - "127.0.0.1:8000:8000"
+    volumes:
+      - uploads_data:/app/uploads
     restart: always
     networks:
       - mtg-proxy-network
@@ -70,6 +72,7 @@ services:
 
 volumes:
   postgres_data:
+  uploads_data:
 
 networks:
   mtg-proxy-network:

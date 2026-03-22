@@ -105,11 +105,55 @@
 - [x] Docker: multi-stage Dockerfile, nginx.conf с proxy на api, сервис в docker-compose (порт 3000)
 - [x] **Проверка:** TypeScript билд без ошибок (`npm run build`)
 
-### Фаза 7: Mini App
-- [ ] 7.1 Адаптация фронтенда для Mini App (Telegram WebApp SDK)
-- [ ] 7.2 Настройка BotFather — WebApp кнопка
-- [ ] 7.3 Авторизация через initData (переиспользует `/auth/telegram/miniapp`)
-- [ ] **Проверка:** Mini App открывается в Telegram, авторизует пользователя автоматически
+### Фаза 7: Mini App ✅
+- [x] 7.1 Адаптация фронтенда для Mini App (Telegram WebApp SDK, `telegram.ts` хелпер, скрытие logout/header в Mini App)
+- [x] 7.2 Настройка BotFather — WebApp кнопка (инструкция в README)
+- [x] 7.3 Авторизация через initData (переиспользует `/auth/telegram/miniapp`, auto-login в `useAuth`)
+- [x] **Проверка:** Mini App открывается в Telegram, авторизует пользователя автоматически
+
+### Фаза 8: Панель администратора
+
+Администратор (тот, чей `telegram_id` есть в `ADMIN_IDS`) входит в `/admin` как обычный пользователь. Флаг `is_admin: bool` возвращается в `/api/me`. Панель позволяет настроить брендинг: название сервиса и логотип.
+
+#### 8.1 Бэкенд — модель и миграция ✅
+- [x] 8.1.1 Новая модель `bot/models/site_setting.py` — `SiteSetting(key VARCHAR PK, value TEXT, updated_at)`
+- [x] 8.1.2 Добавить `SiteSetting` в `bot/models/__init__.py`
+- [x] 8.1.3 Alembic-миграция: создать таблицу `site_settings`
+- [x] 8.1.4 `bot/dao/site_setting.py` — `SiteSettingDAO`: методы `get(key)`, `set(key, value)`, `get_many(keys)`
+
+#### 8.2 Бэкенд — загрузка логотипа (volume) ✅
+- [x] 8.2.1 Добавить volume `uploads_data:/app/uploads` в `docker-compose.yml` и `docker-compose.prod.yml` (сервис `api`)
+- [x] 8.2.2 Монтировать `StaticFiles` в FastAPI: `app.mount("/uploads", StaticFiles(directory="/app/uploads"))`
+- [x] 8.2.3 Добавить `/uploads/` в nginx proxy в `web/nginx.conf` (рядом с `/api/` и `/auth/`)
+
+#### 8.3 Бэкенд — API эндпоинты ✅
+- [x] 8.3.1 `api/deps.py` — новая dependency `require_admin`: проверяет `user.telegram_id in settings.ADMIN_IDS`, иначе 403
+- [x] 8.3.2 `api/routers/admin.py` — новый роутер:
+  - `GET /api/admin/settings` (admin) → `{brand_name, brand_logo_url}`
+  - `PUT /api/admin/settings` (admin) → обновить `brand_name`; возвращает обновлённые настройки
+  - `POST /api/admin/settings/logo` (admin) → `multipart/form-data`, сохранить файл как `/app/uploads/logo.{ext}`, вернуть `{url: "/uploads/logo.{ext}"}`; старый файл удалять перед записью нового
+- [x] 8.3.3 `GET /api/settings` (публичный, без auth) → `{brand_name, brand_logo_url}` — для отображения на сайте
+- [x] 8.3.4 `api/routers/users.py` — добавить `is_admin: bool` в `UserResponse` (вычисляется через `settings.ADMIN_IDS`)
+- [x] 8.3.5 Подключить роутеры в `api/main.py` (admin + settings)
+- [x] **Проверка:** `PUT /api/admin/settings` сохраняет, `GET /api/settings` возвращает без токена, загрузка лого сохраняет файл в volume
+
+#### 8.4 Фронтенд — BrandingContext ✅
+- [x] 8.4.1 `web/src/api/settings.ts` — функции `getPublicSettings()` и `getAdminSettings()`, `updateAdminSettings()`, `uploadLogo()`
+- [x] 8.4.2 `web/src/hooks/useBranding.tsx` — `BrandingProvider`: при старте приложения загружает `GET /api/settings`, хранит `brandName` и `brandLogoUrl` в контексте, экспортирует `useBranding()`
+- [x] 8.4.3 Обернуть `App` в `BrandingProvider` (в `App.tsx`)
+- [x] 8.4.4 Заменить все хардкоды `"MTG Proxy"` на `useBranding().brandName` (LoginPage, ProxiesPage header, `document.title` через BrandingProvider)
+- [x] 8.4.5 Показать логотип в шапке LoginPage и основного layout (если `brandLogoUrl` не пустой — `<img>`, иначе только текст)
+
+#### 8.5 Фронтенд — страницы `/admin` ✅
+- [x] 8.5.1 `AdminRoute` — компонент-гард: если `!user?.is_admin` → редирект на `/` (реализован внутри `AdminSettingsPage.tsx` через `useEffect`)
+- [x] 8.5.2 Добавить маршрут `/admin` в `App.tsx` (внутри `ProtectedRoute`)
+- [x] 8.5.3 `web/src/pages/AdminSettingsPage.tsx`:
+  - Поле "Название бренда" (Input, кнопка "Сохранить")
+  - Загрузка логотипа (Input type=file, превью текущего логотипа, кнопка "Загрузить")
+  - Toast при успехе/ошибке каждого действия
+  - После сохранения — обновить `BrandingContext` через `refresh()`
+- [x] 8.5.4 Ссылка на `/admin` в навигации (видна только если `user?.is_admin && !isMiniApp()`)
+- [x] **Проверка:** TypeScript build ✅, API endpoints ✅ (admin 200, non-admin 403), nginx ✅
 
 ---
 

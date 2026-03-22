@@ -45,7 +45,9 @@ COPY --chown=app:app alembic/ alembic/
 COPY --chown=app:app alembic.ini ./
 COPY --chown=app:app entrypoint.sh entrypoint-api.sh ./
 
-RUN chmod +x entrypoint.sh entrypoint-api.sh
+RUN chmod +x entrypoint.sh entrypoint-api.sh && \
+    mkdir -p /app/uploads && \
+    chown app:app /app/uploads
 
 EXPOSE 8080
 

@@ -5,6 +5,7 @@ from bot.models.faq import FAQItem
 from bot.models.node import Node
 from bot.models.proxy import Proxy
 from bot.models.settings import ProxySettings
+from bot.models.site_setting import SiteSetting
 from bot.models.user import User
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     "Node",
     "Proxy",
     "ProxySettings",
+    "SiteSetting",
     "User",
 ]

@@ -7,7 +7,18 @@ export interface User {
   email: string | null
   email_verified: boolean
   is_banned: boolean
+  is_admin: boolean
   created_at: string
+}
+
+export interface PublicSettings {
+  brand_name: string
+  brand_logo_url: string
+}
+
+export interface AdminSettings {
+  brand_name: string
+  brand_logo_url: string
 }
 
 export interface Node {

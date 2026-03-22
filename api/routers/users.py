@@ -33,9 +33,8 @@ class UserResponse(BaseModel):
     email: str | None
     email_verified: bool
     is_banned: bool
+    is_admin: bool
     created_at: datetime
-
-    model_config = {"from_attributes": True}
 
 
 class LinkRequestResponse(BaseModel):
@@ -55,6 +54,25 @@ class LinkMiniAppResponse(BaseModel):
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _user_response(user: User) -> UserResponse:
+    is_admin = (
+        user.telegram_id is not None
+        and user.telegram_id in settings.ADMIN_IDS
+    )
+    return UserResponse(
+        id=user.id,
+        telegram_id=user.telegram_id,
+        username=user.username,
+        first_name=user.first_name,
+        display_name=user.display_name,
+        email=user.email,
+        email_verified=user.email_verified,
+        is_banned=user.is_banned,
+        is_admin=is_admin,
+        created_at=user.created_at,
+    )
 
 
 def _verify_miniapp(init_data: str) -> dict | None:
@@ -88,7 +106,7 @@ def _verify_miniapp(init_data: str) -> dict | None:
 
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
-    return current_user
+    return _user_response(current_user)
 
 
 @router.post("/me/link/request", response_model=LinkRequestResponse)
@@ -134,7 +152,7 @@ async def link_miniapp(
     if current_user.telegram_id == tg_id:
         # Уже привязан к тому же Telegram-аккаунту
         return LinkMiniAppResponse(
-            user=UserResponse.model_validate(current_user)
+            user=_user_response(current_user)
         )
 
     if current_user.telegram_id is not None:
@@ -159,7 +177,7 @@ async def link_miniapp(
         await session.commit()
         await session.refresh(current_user)
         return LinkMiniAppResponse(
-            user=UserResponse.model_validate(current_user)
+            user=_user_response(current_user)
         )
 
     # Два отдельных аккаунта → merge (старший остаётся основным)
@@ -178,7 +196,7 @@ async def link_miniapp(
             await session.refresh(merged)
         new_token = create_access_token(merged.id)
         return LinkMiniAppResponse(
-            user=UserResponse.model_validate(merged),
+            user=_user_response(merged),
             access_token=new_token,
         )
     else:
@@ -196,5 +214,5 @@ async def link_miniapp(
             source=tg_user_db, target=current_user
         )
         return LinkMiniAppResponse(
-            user=UserResponse.model_validate(merged)
+            user=_user_response(merged)
         )

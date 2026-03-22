@@ -11,6 +11,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useAuth } from '@/hooks/useAuth'
+import { useBranding } from '@/hooks/useBranding'
 
 type Step = 'email' | 'otp'
 
@@ -23,6 +24,7 @@ declare global {
 export default function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const { brandName, brandLogoUrl } = useBranding()
 
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
@@ -124,7 +126,12 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">MTG Proxy</CardTitle>
+          <CardTitle className="text-2xl flex items-center justify-center gap-2">
+            {brandLogoUrl && (
+              <img src={brandLogoUrl} alt="" className="h-8 w-8 object-contain" />
+            )}
+            {brandName}
+          </CardTitle>
           <CardDescription>Войдите, чтобы управлять прокси</CardDescription>
         </CardHeader>
         <CardContent>

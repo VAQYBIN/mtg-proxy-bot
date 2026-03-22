@@ -2,7 +2,9 @@ import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-d
 import { Toaster } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider, useAuth } from '@/hooks/useAuth'
+import { BrandingProvider } from '@/hooks/useBranding'
 import AccountPage from '@/pages/AccountPage'
+import AdminSettingsPage from '@/pages/AdminSettingsPage'
 import LoginPage from '@/pages/LoginPage'
 import ProxiesPage from '@/pages/ProxiesPage'
 import ProxyDetailPage from '@/pages/ProxyDetailPage'
@@ -28,6 +30,7 @@ function AppRoutes() {
       <Route path="/" element={<ProtectedRoute><ProxiesPage /></ProtectedRoute>} />
       <Route path="/proxy/:id" element={<ProtectedRoute><ProxyDetailPage /></ProtectedRoute>} />
       <Route path="/account" element={<ProtectedRoute><AccountPage /></ProtectedRoute>} />
+      <Route path="/admin" element={<ProtectedRoute><AdminSettingsPage /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
@@ -36,12 +39,14 @@ function AppRoutes() {
 export default function App() {
   return (
     <Router>
-      <AuthProvider>
-        <TooltipProvider>
-          <AppRoutes />
-          <Toaster richColors />
-        </TooltipProvider>
-      </AuthProvider>
+      <BrandingProvider>
+        <AuthProvider>
+          <TooltipProvider>
+            <AppRoutes />
+            <Toaster richColors />
+          </TooltipProvider>
+        </AuthProvider>
+      </BrandingProvider>
     </Router>
   )
 }

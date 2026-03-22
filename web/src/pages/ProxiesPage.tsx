@@ -11,11 +11,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/useAuth'
+import { useBranding } from '@/hooks/useBranding'
 import { isMiniApp } from '@/lib/telegram'
 
 export default function ProxiesPage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const { brandName, brandLogoUrl } = useBranding()
 
   const [proxies, setProxies] = useState<Proxy[]>([])
   const [nodes, setNodes] = useState<Node[]>([])
@@ -85,8 +87,18 @@ export default function ProxiesPage() {
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b px-4 py-3 flex items-center justify-between">
-        <div className="font-semibold text-lg">MTG Proxy</div>
+        <div className="flex items-center gap-2 font-semibold text-lg">
+          {brandLogoUrl && (
+            <img src={brandLogoUrl} alt="" className="h-8 w-8 object-contain" />
+          )}
+          {brandName}
+        </div>
         <div className="flex items-center gap-3">
+          {user?.is_admin && !isMiniApp() && (
+            <Button variant="ghost" size="sm" onClick={() => navigate('/admin')}>
+              Настройки
+            </Button>
+          )}
           <Button variant="ghost" size="sm" onClick={() => navigate('/account')}>
             {displayName}
           </Button>
