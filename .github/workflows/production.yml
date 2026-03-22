@@ -33,10 +33,10 @@ jobs:
           notify_fields: "actor,repository,workflow,branch,commit"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python 3.13
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.13'
 
@@ -80,13 +80,13 @@ jobs:
           notify_fields: "actor,repository,workflow,branch,commit"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -100,7 +100,7 @@ jobs:
 
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -112,7 +112,7 @@ jobs:
             type=raw,value=${{ env.DISPATCH_MAJOR_MINOR }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version != '' }}
 
       - name: Build and push Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
@@ -130,4 +130,78 @@ jobs:
           thread_id: ${{ secrets.TELEGRAM_THREAD_ID }}
           status: ${{ job.status }}
           title: "Docker Build & Push [Production]"
+          notify_fields: "actor,repository,workflow,branch,commit"
+
+  build-web:
+    name: Build & Push Web Image
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Notify Telegram — Web Build Started
+        uses: proDreams/actions-telegram-notifier@main
+        with:
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          thread_id: ${{ secrets.TELEGRAM_THREAD_ID }}
+          status: pending
+          title: "Web Build & Push [Production]"
+          notify_fields: "actor,repository,workflow,branch,commit"
+
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute major.minor for manual dispatch
+        if: github.event_name == 'workflow_dispatch' && inputs.version != ''
+        run: |
+          V="${{ inputs.version }}"
+          echo "DISPATCH_MAJOR_MINOR=${V%.*}" >> $GITHUB_ENV
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}-web
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.version != '') }}
+            type=raw,value=${{ inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version != '' }}
+            type=raw,value=${{ env.DISPATCH_MAJOR_MINOR }},enable=${{ github.event_name == 'workflow_dispatch' && inputs.version != '' }}
+
+      - name: Build and push web Docker image
+        uses: docker/build-push-action@v7
+        with:
+          context: ./web
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VITE_BOT_USERNAME=${{ vars.VITE_BOT_USERNAME }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Notify Telegram — Web Build
+        if: always()
+        uses: proDreams/actions-telegram-notifier@main
+        with:
+          token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          chat_id: ${{ secrets.TELEGRAM_CHAT_ID }}
+          thread_id: ${{ secrets.TELEGRAM_THREAD_ID }}
+          status: ${{ job.status }}
+          title: "Web Build & Push [Production]"
           notify_fields: "actor,repository,workflow,branch,commit"

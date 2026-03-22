@@ -91,6 +91,7 @@ venv/
 # Claude
 CLAUDE.md
 .claude/
+.mcp.json
 
 # Documentation (README.md excluded — required by pyproject.toml)
 CHANGELOG.md
