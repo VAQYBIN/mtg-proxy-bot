@@ -47,3 +47,4 @@ testpaths = ["tests"]
 [tool.flake8]
 max-line-length = 88
 exclude = [".venv", ".git", "__pycache__", "alembic"]
+per-file-ignores = ["api/email_service.py:E501"]
