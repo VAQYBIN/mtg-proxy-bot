@@ -155,6 +155,65 @@
 - [x] 8.5.4 Ссылка на `/admin` в навигации (видна только если `user?.is_admin && !isMiniApp()`)
 - [x] **Проверка:** TypeScript build ✅, API endpoints ✅ (admin 200, non-admin 403), nginx ✅
 
+### Фаза 9: Рекламный баннер
+
+Администратор может включить рекламный баннер на главной странице клиента. Баннер показывает произвольный текст с кнопкой-ссылкой (например, на VPN-бота в Telegram). Пользователь может скрыть баннер на текущую сессию.
+
+**Ключевые решения:**
+- Настройки хранятся в уже существующей таблице `site_settings` (key-value), миграция не нужна
+- Баннер виден только если `ad_enabled = true` И `ad_url` не пустой
+- Данные баннера входят в публичный `GET /api/settings` — без авторизации, вместе с брендингом
+- Управление баннером — в той же странице `/admin`, новая карточка после логотипа
+- Shadcn `Switch` для включения/выключения, `Alert` для отображения баннера у клиента
+- Dismiss — только на текущую сессию (React state, без localStorage)
+
+**Новые ключи в `site_settings`:**
+| Ключ | Тип | По умолчанию | Описание |
+|------|-----|--------------|----------|
+| `ad_enabled` | `"true"` / `""` | `""` (выкл) | Включён ли баннер |
+| `ad_url` | строка | `""` | Ссылка кнопки (t.me/..., https://...) |
+| `ad_text` | строка | `""` | Текст баннера (если пусто — показывается только кнопка) |
+| `ad_button_text` | строка | `"Подробнее"` | Текст кнопки |
+
+#### 9.1 Бэкенд — константы и DAO ✅
+- [x] 9.1.1 Добавить константы `AD_ENABLED`, `AD_URL`, `AD_TEXT`, `AD_BUTTON_TEXT` в `bot/dao/site_setting.py`
+- [x] 9.1.2 Добавить дефолты: `ad_enabled=""`, `ad_url=""`, `ad_text=""`, `ad_button_text="Подробнее"`
+
+#### 9.2 Бэкенд — расширение API ✅
+- [x] 9.2.1 `api/routers/admin.py` — расширить `AdminSettingsResponse` полями `ad_enabled: bool`, `ad_url: str`, `ad_text: str`, `ad_button_text: str`
+- [x] 9.2.2 `api/routers/admin.py` — расширить `AdminSettingsUpdate` теми же полями (все опциональные)
+- [x] 9.2.3 `api/routers/admin.py` — в `PUT /api/admin/settings` сохранять ad-поля: `ad_enabled` → `"true"`/`""`, остальные trimmed или None
+- [x] 9.2.4 `api/routers/pub_settings.py` — расширить `PublicSettingsResponse` полями `ad_enabled: bool`, `ad_url: str`, `ad_text: str`, `ad_button_text: str`; читать через `dao.get_many([..., AD_ENABLED, AD_URL, AD_TEXT, AD_BUTTON_TEXT])`
+- [x] **Проверка:** `GET /api/settings` возвращает ad-поля без токена; `PUT /api/admin/settings` с невалидным токеном → 401 (схема парсится корректно)
+
+#### 9.3 Фронтенд — типы и API-клиент ✅
+- [x] 9.3.1 `web/src/api/types.ts` — добавить `ad_enabled`, `ad_url`, `ad_text`, `ad_button_text` в `PublicSettings` и `AdminSettings`; новый тип `AdminSettingsUpdate`
+- [x] 9.3.2 `web/src/api/settings.ts` — переименовать `updateBrandName` → `updateAdminSettings(data: AdminSettingsUpdate)`, принимает объект с любыми полями, отправляет `PUT /api/admin/settings`
+- [x] 9.3.3 Обновить вызов в `AdminSettingsPage.tsx` на `updateAdminSettings({ brand_name })`
+
+#### 9.4 Фронтенд — BrandingContext расширение ✅
+- [x] 9.4.1 `web/src/hooks/useBranding.tsx` — добавить в контекст: `adEnabled: boolean`, `adUrl: string`, `adText: string`, `adButtonText: string`; парсить из ответа `GET /api/settings`
+
+#### 9.5 Фронтенд — компонент AdBanner ✅
+- [x] 9.5.1 `web/src/components/AdBanner.tsx` — компонент-баннер:
+  - Принимает `{ url, text, buttonText }` через props
+  - Рендерит shadcn `Alert` со слотом `AlertAction` (кнопка ✕ для dismiss)
+  - Иконка `Megaphone` из `lucide-react`
+  - `AlertTitle` — `text` (если не пустой); `<a>` со стилями вместо `asChild` (Button использует `@base-ui/react`)
+  - Dismiss через `useState(false)` — при нажатии ✕ скрывает компонент на сессию
+
+#### 9.6 Фронтенд — интеграция в ProxiesPage ✅
+- [x] 9.6.1 `web/src/pages/ProxiesPage.tsx` — рендерить `<AdBanner />` между `<Separator />` и списком прокси, только если `adEnabled && adUrl`
+
+#### 9.7 Фронтенд — AdminSettingsPage расширение ✅
+- [x] 9.7.1 Добавить `Switch` из shadcn: `npx shadcn@latest add switch`
+- [x] 9.7.2 `web/src/pages/AdminSettingsPage.tsx` — новая карточка "Рекламный баннер" после карточки логотипа:
+  - `Switch` + Label "Показывать баннер на главной странице"
+  - `Input` для URL, текста баннера, текста кнопки (disabled если `!adEnabled`)
+  - Кнопка "Сохранить" — disabled если включён, но URL пустой
+  - Toast при успехе/ошибке; после сохранения — `refresh()` обновляет `BrandingContext`
+- [x] **Проверка:** TypeScript build ✅, vite build ✅, `GET /api/settings` через nginx → ad-поля присутствуют
+
 ---
 
 ## Проектирование: Фаза 1

@@ -8,9 +8,18 @@ from bot.models.site_setting import SiteSetting
 BRAND_NAME = "brand_name"
 BRAND_LOGO_URL = "brand_logo_url"
 
+AD_ENABLED = "ad_enabled"
+AD_URL = "ad_url"
+AD_TEXT = "ad_text"
+AD_BUTTON_TEXT = "ad_button_text"
+
 DEFAULTS: dict[str, str] = {
     BRAND_NAME: "MTG Proxy",
     BRAND_LOGO_URL: "",
+    AD_ENABLED: "",
+    AD_URL: "",
+    AD_TEXT: "",
+    AD_BUTTON_TEXT: "Подробнее",
 }
 
 

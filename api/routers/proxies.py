@@ -62,7 +62,7 @@ class CreateProxyRequest(BaseModel):
 
 def _tme_link(proxy: Proxy) -> str:
     return (
-        f"https://t.me/proxy"
+        f"tg://proxy"
         f"?server={proxy.node.host}"
         f"&port={proxy.port}"
         f"&secret={proxy.secret}"

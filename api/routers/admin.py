@@ -7,6 +7,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from api.deps import get_session, require_admin
 from bot.dao.site_setting import (
+    AD_BUTTON_TEXT,
+    AD_ENABLED,
+    AD_TEXT,
+    AD_URL,
     BRAND_LOGO_URL,
     BRAND_NAME,
     SiteSettingDAO,
@@ -37,10 +41,18 @@ _MAX_LOGO_SIZE = 2 * 1024 * 1024  # 2 MB
 class AdminSettingsResponse(BaseModel):
     brand_name: str
     brand_logo_url: str
+    ad_enabled: bool
+    ad_url: str
+    ad_text: str
+    ad_button_text: str
 
 
 class AdminSettingsUpdate(BaseModel):
-    brand_name: str
+    brand_name: str | None = None
+    ad_enabled: bool | None = None
+    ad_url: str | None = None
+    ad_text: str | None = None
+    ad_button_text: str | None = None
 
 
 class LogoUploadResponse(BaseModel):
@@ -52,18 +64,29 @@ class LogoUploadResponse(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+_ALL_SETTINGS_KEYS = [BRAND_NAME, BRAND_LOGO_URL, AD_ENABLED, AD_URL, AD_TEXT, AD_BUTTON_TEXT]
+
+
+def _build_settings_response(data: dict) -> AdminSettingsResponse:
+    return AdminSettingsResponse(
+        brand_name=data[BRAND_NAME] or "",
+        brand_logo_url=data[BRAND_LOGO_URL] or "",
+        ad_enabled=data[AD_ENABLED] == "true",
+        ad_url=data[AD_URL] or "",
+        ad_text=data[AD_TEXT] or "",
+        ad_button_text=data[AD_BUTTON_TEXT] or "Подробнее",
+    )
+
+
 @router.get("/settings", response_model=AdminSettingsResponse)
 async def get_admin_settings(
     session: AsyncSession = Depends(get_session),
     _admin: User = Depends(require_admin),
 ):
-    """Получить текущие настройки бренда (только для администратора)."""
+    """Получить текущие настройки (только для администратора)."""
     dao = SiteSettingDAO(session)
-    data = await dao.get_many([BRAND_NAME, BRAND_LOGO_URL])
-    return AdminSettingsResponse(
-        brand_name=data[BRAND_NAME] or "",
-        brand_logo_url=data[BRAND_LOGO_URL] or "",
-    )
+    data = await dao.get_many(_ALL_SETTINGS_KEYS)
+    return _build_settings_response(data)
 
 
 @router.put("/settings", response_model=AdminSettingsResponse)
@@ -72,14 +95,22 @@ async def update_admin_settings(
     session: AsyncSession = Depends(get_session),
     _admin: User = Depends(require_admin),
 ):
-    """Обновить название бренда."""
+    """Обновить настройки бренда и рекламного баннера."""
     dao = SiteSettingDAO(session)
-    await dao.set(BRAND_NAME, body.brand_name.strip() or None)
-    data = await dao.get_many([BRAND_NAME, BRAND_LOGO_URL])
-    return AdminSettingsResponse(
-        brand_name=data[BRAND_NAME] or "",
-        brand_logo_url=data[BRAND_LOGO_URL] or "",
-    )
+
+    if body.brand_name is not None:
+        await dao.set(BRAND_NAME, body.brand_name.strip() or None)
+    if body.ad_enabled is not None:
+        await dao.set(AD_ENABLED, "true" if body.ad_enabled else "")
+    if body.ad_url is not None:
+        await dao.set(AD_URL, body.ad_url.strip() or None)
+    if body.ad_text is not None:
+        await dao.set(AD_TEXT, body.ad_text.strip() or None)
+    if body.ad_button_text is not None:
+        await dao.set(AD_BUTTON_TEXT, body.ad_button_text.strip() or None)
+
+    data = await dao.get_many(_ALL_SETTINGS_KEYS)
+    return _build_settings_response(data)
 
 
 @router.post("/settings/logo", response_model=LogoUploadResponse)

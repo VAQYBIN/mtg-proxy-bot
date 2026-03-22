@@ -87,7 +87,7 @@ export default function AccountPage() {
 
   return (
     <div className="min-h-screen bg-background">
-      <header className="border-b px-4 py-3 flex items-center gap-3">
+      <header className="sticky top-0 z-10 bg-background border-b shadow-sm px-4 py-3 flex items-center gap-3">
         <Button variant="ghost" size="sm" onClick={() => navigate('/')}>
           ← Назад
         </Button>
