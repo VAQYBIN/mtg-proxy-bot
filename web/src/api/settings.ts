@@ -1,4 +1,4 @@
-import type { AdminSettings, PublicSettings } from './types'
+import type { AdminSettings, AdminSettingsUpdate, PublicSettings } from './types'
 
 export async function getPublicSettings(): Promise<PublicSettings> {
   const res = await fetch('/api/settings')
@@ -15,7 +15,7 @@ export async function getAdminSettings(): Promise<AdminSettings> {
   return res.json() as Promise<AdminSettings>
 }
 
-export async function updateBrandName(brandName: string): Promise<AdminSettings> {
+export async function updateAdminSettings(data: AdminSettingsUpdate): Promise<AdminSettings> {
   const token = localStorage.getItem('jwt')
   const res = await fetch('/api/admin/settings', {
     method: 'PUT',
@@ -23,7 +23,7 @@ export async function updateBrandName(brandName: string): Promise<AdminSettings>
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
-    body: JSON.stringify({ brand_name: brandName }),
+    body: JSON.stringify(data),
   })
   if (!res.ok) throw new Error('Failed to update settings')
   return res.json() as Promise<AdminSettings>

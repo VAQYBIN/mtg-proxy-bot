@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { getAdminSettings, updateBrandName, uploadLogo } from '@/api/settings'
+import { getAdminSettings, updateAdminSettings, uploadLogo } from '@/api/settings'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/hooks/useAuth'
 import { useBranding } from '@/hooks/useBranding'
 
@@ -19,6 +20,12 @@ export default function AdminSettingsPage() {
   const [savingName, setSavingName] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [loadingSettings, setLoadingSettings] = useState(true)
+
+  const [adEnabled, setAdEnabled] = useState(false)
+  const [adUrl, setAdUrl] = useState('')
+  const [adText, setAdText] = useState('')
+  const [adButtonText, setAdButtonText] = useState('')
+  const [savingAd, setSavingAd] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -34,6 +41,10 @@ export default function AdminSettingsPage() {
     try {
       const s = await getAdminSettings()
       setBrandName(s.brand_name ?? '')
+      setAdEnabled(s.ad_enabled)
+      setAdUrl(s.ad_url ?? '')
+      setAdText(s.ad_text ?? '')
+      setAdButtonText(s.ad_button_text ?? '')
     } catch {
       toast.error('Не удалось загрузить настройки')
     } finally {
@@ -45,7 +56,7 @@ export default function AdminSettingsPage() {
     e.preventDefault()
     setSavingName(true)
     try {
-      await updateBrandName(brandName)
+      await updateAdminSettings({ brand_name: brandName })
       await refresh()
       toast.success('Название обновлено')
     } catch {
@@ -68,6 +79,25 @@ export default function AdminSettingsPage() {
     } finally {
       setUploadingLogo(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
+  async function handleSaveAd(e: React.FormEvent) {
+    e.preventDefault()
+    setSavingAd(true)
+    try {
+      await updateAdminSettings({
+        ad_enabled: adEnabled,
+        ad_url: adUrl,
+        ad_text: adText,
+        ad_button_text: adButtonText,
+      })
+      await refresh()
+      toast.success('Настройки рекламы сохранены')
+    } catch {
+      toast.error('Не удалось сохранить настройки рекламы')
+    } finally {
+      setSavingAd(false)
     }
   }
 
@@ -148,6 +178,69 @@ export default function AdminSettingsPage() {
                 {uploadingLogo ? 'Загрузка...' : 'Выбрать файл'}
               </Button>
             </div>
+          </CardContent>
+        </Card>
+
+        <Separator />
+
+        {/* Ad banner */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Рекламный баннер</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSaveAd} className="space-y-4">
+              <div className="flex items-center gap-3">
+                <Switch
+                  id="ad-enabled"
+                  checked={adEnabled}
+                  onCheckedChange={setAdEnabled}
+                  disabled={savingAd}
+                />
+                <Label htmlFor="ad-enabled">Показывать баннер на главной странице</Label>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ad-url">Ссылка</Label>
+                <Input
+                  id="ad-url"
+                  type="url"
+                  value={adUrl}
+                  onChange={(e) => setAdUrl(e.target.value)}
+                  placeholder="https://t.me/your_bot"
+                  disabled={savingAd || !adEnabled}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ad-text">Текст баннера</Label>
+                <Input
+                  id="ad-text"
+                  value={adText}
+                  onChange={(e) => setAdText(e.target.value)}
+                  placeholder="Нужен VPN? Попробуйте наш сервис"
+                  disabled={savingAd || !adEnabled}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="ad-button-text">Текст кнопки</Label>
+                <Input
+                  id="ad-button-text"
+                  value={adButtonText}
+                  onChange={(e) => setAdButtonText(e.target.value)}
+                  placeholder="Подробнее"
+                  disabled={savingAd || !adEnabled}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={savingAd || (adEnabled && !adUrl.trim())}
+              >
+                {savingAd ? 'Сохранение...' : 'Сохранить'}
+              </Button>
+            </form>
           </CardContent>
         </Card>
       </main>

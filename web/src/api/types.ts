@@ -14,11 +14,27 @@ export interface User {
 export interface PublicSettings {
   brand_name: string
   brand_logo_url: string
+  ad_enabled: boolean
+  ad_url: string
+  ad_text: string
+  ad_button_text: string
 }
 
 export interface AdminSettings {
   brand_name: string
   brand_logo_url: string
+  ad_enabled: boolean
+  ad_url: string
+  ad_text: string
+  ad_button_text: string
+}
+
+export interface AdminSettingsUpdate {
+  brand_name?: string
+  ad_enabled?: boolean
+  ad_url?: string
+  ad_text?: string
+  ad_button_text?: string
 }
 
 export interface Node {

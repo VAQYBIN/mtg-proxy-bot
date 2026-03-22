@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { ApiError } from '@/api/client'
 import { createProxy, getNodes, getProxies } from '@/api/proxies'
 import type { Node, Proxy } from '@/api/types'
+import { AdBanner } from '@/components/AdBanner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -17,7 +18,7 @@ import { isMiniApp } from '@/lib/telegram'
 export default function ProxiesPage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
-  const { brandName, brandLogoUrl } = useBranding()
+  const { brandName, brandLogoUrl, adEnabled, adUrl, adText, adButtonText } = useBranding()
 
   const [proxies, setProxies] = useState<Proxy[]>([])
   const [nodes, setNodes] = useState<Node[]>([])
@@ -119,6 +120,10 @@ export default function ProxiesPage() {
         </div>
 
         <Separator />
+
+        {adEnabled && adUrl && (
+          <AdBanner url={adUrl} text={adText} buttonText={adButtonText} />
+        )}
 
         {loadingProxies ? (
           <div className="space-y-3">
