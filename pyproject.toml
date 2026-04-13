@@ -30,7 +30,7 @@ packages = ["bot"]
 
 [project.optional-dependencies]
 dev = [
-  "pytest>=8.0",
+  "pytest>=9.0.3",
   "pytest-asyncio>=0.24",
   "flake8>=7.0",
   "flake8-pyproject>=1.2",
